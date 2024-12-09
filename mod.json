@@ -1,0 +1,44 @@
+{
+	"geode": "4.0.1",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "sorkopiko.userrate",
+	"name": "UserRate",
+	"version": "v1.0.0",
+	"developer": "SorkoPiko",
+	"description": "",
+	"links": {
+		"source": "https://github.com/SorkoPiko/UserRate",
+		"community": "https://discord.gg/8uPFxhxBX9"
+	},
+	"tags": [
+		"universal",
+		"gameplay",
+		"editor",
+		"offline",
+		"online",
+		"enhancement",
+		"music",
+		"interface",
+		"bugfix",
+		"utility",
+		"performance",
+		"customization",
+		"content",
+		"developer",
+		"cheats",
+		"paid",
+		"joke"
+	],
+	"dependencies": [
+		{
+			"id": "geode.node-ids",
+			"version": ">=v1.15.0",
+			"importance": "required"
+		}
+	]
+}
