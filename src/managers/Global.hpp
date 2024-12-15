@@ -7,7 +7,14 @@ class Global {
     static Global* instance;
     static std::mutex mutex;
 
-    Global() {}
+    bool checkedModStatus = false;
+    bool mod = true;
+    bool admin = true;
+    bool customRating = false;
+
+    void checkAccountStatus();
+
+    Global() = default;
 
 public:
     Global(const Global&) = delete;
@@ -21,9 +28,18 @@ public:
         return instance;
     }
 
-    bool checkedModStatus = false;
-    bool isMod = true;
-    bool isCustomRating = false;
+    bool isMod() {
+        checkAccountStatus();
+        return mod || admin;
+    }
+
+    bool isAdmin() {
+        checkAccountStatus();
+        return admin;
+    }
+
+    [[nodiscard]] bool isCustomRating() const {return customRating;}
+    void setCustomRating(const bool value) {customRating = value;}
 };
 
 #endif

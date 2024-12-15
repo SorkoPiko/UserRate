@@ -10,14 +10,14 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
             return false;
         }
 
-        if (!Global::getInstance()->isMod && m_level->m_stars == 0) return true;
+        if (!Global::getInstance()->isMod() && m_level->m_stars == 0) return true;
 
         CCNode* menu;
         if (m_level->m_stars == 0) {
             menu = getChildByID("left-side-menu");
-        } else {
+        } else if (m_level->m_demon == 1) {
             menu = getChildByID("right-side-menu");
-        }
+        } else return true;
 
         log::info("stars {}", m_level->m_stars.value());
         log::info("demon {}", m_level->m_demon.value());
@@ -39,24 +39,26 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
     }
 
     void onRateStarsMod(CCObject* sender) {
-        Global::getInstance()->isCustomRating = false;
+        Global::getInstance()->setCustomRating(false);
         LevelInfoLayer::onRateStarsMod(sender);
     }
 
     void onRateDemon(CCObject* sender) {
-        Global::getInstance()->isCustomRating = false;
+        Global::getInstance()->setCustomRating(false);
         LevelInfoLayer::onRateDemon(sender);
     }
 
-    void onCustomRate(CCObject* sender) {
-        Global::getInstance()->isCustomRating = true;
+    void onCustomRate(CCObject*) {
+        log::info("custom rate");
+        Global::getInstance()->setCustomRating(true);
 
         const auto layer = RateStarsLayer::create(m_level->m_levelID.value(), m_level->isPlatformer(), true);
         layer->show();
     }
 
-    void onCustomDemonRate(CCObject* sender) {
-        Global::getInstance()->isCustomRating = true;
+    void onCustomDemonRate(CCObject*) {
+        log::info("custom demon rate");
+        Global::getInstance()->setCustomRating(true);
 
         const auto layer = RateDemonLayer::create(this->m_level->m_levelID.value());
         layer->m_delegate = this;
