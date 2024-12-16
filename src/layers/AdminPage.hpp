@@ -12,7 +12,7 @@ class AdminPage final : public CCLayer {
     CCMenuItemSpriteExtra* closeBtn = nullptr;
     CCMenu* buttonMenu = nullptr;
 
-    bool init();
+    bool init() override;
 
     void onSentLevels(CCObject*);
 
