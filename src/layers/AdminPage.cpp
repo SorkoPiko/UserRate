@@ -14,28 +14,63 @@ bool AdminPage::init() {
     background->setZOrder(-10);
     mainLayer->addChild(background);
 
-    closeBtn = CCMenuItemExt::createSpriteExtra(
-        CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png"), [this](CCObject*) {
-            keyBackClicked();
-        }
-    );
-
     const auto closeMenu = CCMenu::create();
+    closeMenu->setID("close-menu");
+    closeMenu->setContentWidth(100.f);
+    closeMenu->setAnchorPoint({ .0f, .5f });
+
+    closeBtn = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png"),
+        this,
+        menu_selector(AdminPage::onBack)
+    );
+    closeBtn->setID("back-button");
     closeMenu->addChild(closeBtn);
-    closeMenu->setPosition({ 45, winSize.height - 25 });
-    mainLayer->addChild(closeMenu);
+
+    closeMenu->setLayout(
+        RowLayout::create()
+            ->setAxisAlignment(AxisAlignment::Start)
+    );
+    mainLayer->addChildAtPosition(closeMenu, Anchor::TopLeft, ccp(12, -25), false);
+
+    buttonMenu = CCMenu::create();
+    buttonMenu->setID("button-menu");
+
+    const auto button = CCMenuItemSpriteExtra::create(
+        SearchButton::create("GJ_longBtn04_001.png", "Sent", 0.5, "GJ_sModIcon_001.png"),
+        this,
+        menu_selector(AdminPage::onSentLevels)
+    );
+    button->setID("levels-button");
+    buttonMenu->addChild(button);
+
+    mainLayer->addChildAtPosition(buttonMenu, Anchor::Center, ccp(0, 0), false);
 
     addSideArt(mainLayer, SideArt::Bottom);
 
+    setKeypadEnabled(true);
+    setKeyboardEnabled(true);
     addChild(mainLayer);
 
     return true;
 }
 
+void AdminPage::onSentLevels(CCObject*) {
+    CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, LevelBrowserLayer::scene(GJSearchObject::create(SearchType::MapPackOnClick, "102063008,111550678"))));
+}
+
+void AdminPage::onBack(CCObject*) {
+    keyBackClicked();
+}
+
+void AdminPage::keyBackClicked() {
+    CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
+}
+
 AdminPage* AdminPage::create() {
     const auto ret = new AdminPage();
     if (ret->init()) {
-        ret->autorelease();g
+        ret->autorelease();
         return ret;
     }
     delete ret;
