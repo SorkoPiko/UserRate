@@ -3,6 +3,7 @@ import threading
 import queue
 import time
 import asyncio
+import urllib.parse
 
 class AccountChecker:
     def __init__(self):
@@ -33,10 +34,10 @@ class AccountChecker:
         }
 
         headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
+            "User-Agent": ""
         }
 
-        req = requests.post('http://boomlings.com/database/getGJUserInfo20.php', data=data, headers=headers)
+        req = requests.post('http://www.boomlings.com/database/getGJUserInfo20.php', data=data, headers=headers)
 
         if req.text == "-1": return False
 

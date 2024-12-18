@@ -14,12 +14,12 @@ bool AdminPage::init() {
     background->setZOrder(-10);
     mainLayer->addChild(background);
 
-    const auto closeMenu = CCMenu::create();
+    closeMenu = CCMenu::create();
     closeMenu->setID("close-menu");
     closeMenu->setContentWidth(100.f);
     closeMenu->setAnchorPoint({ .0f, .5f });
 
-    closeBtn = CCMenuItemSpriteExtra::create(
+    const auto closeBtn = CCMenuItemSpriteExtra::create(
         CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png"),
         this,
         menu_selector(AdminPage::onBack)
@@ -36,13 +36,13 @@ bool AdminPage::init() {
     buttonMenu = CCMenu::create();
     buttonMenu->setID("button-menu");
 
-    const auto button = CCMenuItemSpriteExtra::create(
+    const auto levelButton = CCMenuItemSpriteExtra::create(
         SearchButton::create("GJ_longBtn04_001.png", "Sent", 0.5, "GJ_sModIcon_001.png"),
         this,
         menu_selector(AdminPage::onSentLevels)
     );
-    button->setID("levels-button");
-    buttonMenu->addChild(button);
+    levelButton->setID("levels-button");
+    buttonMenu->addChild(levelButton);
 
     mainLayer->addChildAtPosition(buttonMenu, Anchor::Center, ccp(0, 0), false);
 

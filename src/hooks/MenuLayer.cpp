@@ -9,9 +9,14 @@ class $modify(RateMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
 
-        if (const auto menu = getChildByID("bottom-menu"); menu && Global::getInstance()->isAdmin()) {
+        if (const auto menu = getChildByID("bottom-menu"); Global::getInstance()->isMod()) {
+            const auto rateSprite = CircleButtonSprite::create(
+                CCSprite::createWithSpriteFrameName("GJ_bigStar_noShadow_001.png"),
+                CircleBaseColor::Cyan,
+                CircleBaseSize::MediumAlt
+            );
             const auto rateButton = CCMenuItemSpriteExtra::create(
-                CCSprite::createWithSpriteFrameName("GJ_rateBtn_001.png"),
+                rateSprite,
                 this,
                 menu_selector(RateMenuLayer::onAdmin)
             );

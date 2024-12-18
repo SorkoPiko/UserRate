@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 from os import environ
-import hashlib
+import hashlib, asyncio
 
 from db import UserRateDB
 from models import suggestGJStars20, Reassign
@@ -46,7 +46,8 @@ async def suggest(request: Request):
 
     form = suggestGJStars20(**form_dict)
 
-    if not form.gjp2: return "-2"
+    if not form.gjp2:
+        return "-2"
 
     print(form)
 
@@ -60,15 +61,34 @@ async def demon(request: Request):
     print(form_dict)
     return {"message": "Demon"}
 
-async def reassign(result: bool, accountID: int, promote: bool):
-    if not result:
-        return "-1"
-    if promote:
-        await db.promote_mod(accountID)
-    else:
-        await db.demote_mod(accountID)
-    return "1"
+@app.post("/admin/reassign")
+async def reassign_moderator(data: Reassign):
+    staff = db.find_staff_by_id(data.ownerID)
+    if staff is None or not staff.admin:
+        raise HTTPException(status_code=400, detail="You must be an admin to reassign moderators")
 
-@app.post("/reassign")
-async def reassign_check(data: Reassign):
-    checker.queue_check(data.ownerID, data.gjp2, reassign, data.accountID, data.promote)
+    future = asyncio.Future()
+
+    async def callback(result: bool):
+        future.set_result(result)
+
+    checker.queue_check(data.ownerID, data.gjp2, callback)
+
+    futureResult = await future
+
+    if not futureResult:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    if data.promote:
+        db.promote_mod(data.accountID)
+    else:
+        db.demote_mod(data.accountID)
+
+    return {"message": "Success"}
+
+@app.get("/checkmod")
+async def check_mod(accountid: int):
+    staff = db.find_staff_by_id(accountid)
+    if staff is None:
+        return {"moderator": False}
+    return {"moderator": True, "admin": staff.admin}

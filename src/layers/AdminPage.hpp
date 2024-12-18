@@ -6,10 +6,9 @@
 using namespace geode::prelude;
 
 class AdminPage final : public CCLayer {
-
     CCNode* mainLayer = nullptr;
     CCSprite* background = nullptr;
-    CCMenuItemSpriteExtra* closeBtn = nullptr;
+    CCMenu* closeMenu = nullptr;
     CCMenu* buttonMenu = nullptr;
 
     bool init() override;

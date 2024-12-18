@@ -4,8 +4,6 @@
 
 using namespace geode::prelude;
 
-#define SERVER_URL "http://127.0.0.1:8000"
-
 class $modify(RateCCHttpClient, CCHttpClient) {
     void send(CCHttpRequest* request) {
         if (!Global::getInstance()->isCustomRating()) return CCHttpClient::send(request);

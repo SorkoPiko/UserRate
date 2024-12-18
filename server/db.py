@@ -17,9 +17,13 @@ class UserRateDB:
         db = self.get_database(db_name)
         return db[collection_name]
 
-    def find_staff_by_id(self, staff_id: int) -> Staff:
+    def find_staff_by_id(self, staff_id: int) -> Staff | None:
         collection = self.get_collection("data", "staff")
         raw = collection.find_one({"_id": staff_id})
+        if raw is None:
+            return None
+        if "admin" not in raw:
+            return Staff(accountID=raw["_id"])
         return Staff(accountID=raw["_id"], admin=raw["admin"])
 
     def demote_mod(self, account_id: int):

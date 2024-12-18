@@ -19,11 +19,8 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
             menu = getChildByID("right-side-menu");
         } else return true;
 
-        log::info("stars {}", m_level->m_stars.value());
-        log::info("demon {}", m_level->m_demon.value());
-        const auto star = CCSprite::createWithSpriteFrameName(m_level->m_demon == 1 ? "diffIcon_06_btn_001.png" : "GJ_bigStar_noShadow_001.png");
         const auto rateSprite = CircleButtonSprite::create(
-            star,
+            CCSprite::createWithSpriteFrameName(m_level->m_demon == 1 ? "diffIcon_06_btn_001.png" : "GJ_bigStar_noShadow_001.png"),
             CircleBaseColor::Cyan
         );
 
