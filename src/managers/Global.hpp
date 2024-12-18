@@ -11,11 +11,7 @@ class Global {
 
     std::vector<int> modList{};
     std::vector<int> adminList{};
-    std::vector<int> checkedList{};
 
-    bool checkedModStatus = false;
-    bool mod = true;
-    bool admin = true;
     bool customRating = false;
 
     Global() = default;
@@ -32,21 +28,17 @@ public:
         return instance;
     }
 
-    void checkAccountStatus();
+    void setMods(const std::vector<int>& mods) {modList = mods;}
+    void setAdmins(const std::vector<int>& admins) {adminList = admins;}
 
-    void clearUser(int accountID);
+    [[nodiscard]] std::vector<int> getMods() const {return modList;}
+    [[nodiscard]] std::vector<int> getAdmins() const {return adminList;}
 
     [[nodiscard]] bool isUserMod(const int accountID) const {return std::ranges::find(modList, accountID) != modList.end();}
-    void addMod(const int accountID) {modList.push_back(accountID);}
-
     [[nodiscard]] bool isUserAdmin(const int accountID) const {return std::ranges::find(adminList, accountID) != adminList.end();}
-    void addAdmin(const int accountID) {adminList.push_back(accountID);}
 
-    [[nodiscard]] bool isUserChecked(const int accountID) const {return std::ranges::find(checkedList, accountID) != checkedList.end();}
-    void addChecked(const int accountID) {checkedList.push_back(accountID);}
-
-    [[nodiscard]] bool isMod() const {return mod || admin;}
-    [[nodiscard]] bool isAdmin() const {return admin;}
+    [[nodiscard]] bool isMod() const {return isUserMod(GJAccountManager::sharedState()->m_accountID) || isAdmin();}
+    [[nodiscard]] bool isAdmin() const {return isUserAdmin(GJAccountManager::sharedState()->m_accountID);}
     [[nodiscard]] bool isCustomRating() const {return customRating;}
     void setCustomRating(const bool value) {customRating = value;}
 };

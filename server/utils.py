@@ -3,7 +3,6 @@ import threading
 import queue
 import time
 import asyncio
-import urllib.parse
 
 class AccountChecker:
     def __init__(self):

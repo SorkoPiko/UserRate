@@ -35,21 +35,34 @@ def convert_fields_to_bool(form_dict: dict, fields: list) -> dict:
         if field in form_dict:
             form_dict[field] = bool(int(form_dict[field]))
     return form_dict
-@app.post("/mod/suggest", response_class=HTMLResponse)
+@app.post("/suggest", response_class=HTMLResponse)
 async def suggest(request: Request):
     raw_form = await request.form()
     form_dict = {key: value for key, value in raw_form.items()}
 
     form_dict = convert_fields_to_int(form_dict, ["gameVersion", "binaryVersion", "accountID", "levelID", "stars", "feature"])
     form_dict = convert_fields_to_bool(form_dict, ["gdw"])
-    form_dict = censor(form_dict)
 
     form = suggestGJStars20(**form_dict)
 
     if not form.gjp2:
         return "-2"
 
-    print(form)
+    if form.stars is None or form.feature is None:
+        return "-2"
+
+    if form.stars < 0 or form.stars > 10:
+        return "-2"
+
+    sendDict = {
+        "_id": hashlib.sha256(request.client.host.encode()).hexdigest(),
+        "levelID": form.levelID,
+        "stars": form.stars,
+        "feature": form.feature.value
+    }
+
+    db.send(sendDict)
+    print(f"{request.client.host} suggested {form.stars} stars with a {form.feature} rating for level {form.levelID}")
 
     return "1"
 
@@ -57,8 +70,6 @@ async def suggest(request: Request):
 async def demon(request: Request):
     raw_form = await request.form()
     form_dict: dict = {key: value for key, value in raw_form.items()}
-    print("Demon")
-    print(form_dict)
     return {"message": "Demon"}
 
 @app.post("/admin/reassign")
@@ -86,9 +97,7 @@ async def reassign_moderator(data: Reassign):
 
     return {"message": "Success"}
 
-@app.get("/checkmod")
-async def check_mod(accountid: int):
-    staff = db.find_staff_by_id(accountid)
-    if staff is None:
-        return {"moderator": False}
-    return {"moderator": True, "admin": staff.admin}
+@app.get("/mods")
+async def get_mods():
+    staff = db.get_all_staff()
+    return {"mods": [mod.accountID for mod in staff if not mod.admin], "admins": [admin.accountID for admin in staff if admin.admin]}

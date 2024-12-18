@@ -17,6 +17,11 @@ class UserRateDB:
         db = self.get_database(db_name)
         return db[collection_name]
 
+    def get_all_staff(self) -> list[Staff]:
+        collection = self.get_collection("data", "staff")
+        raw_staff = collection.find()
+        return [Staff(accountID=staff["_id"], admin=staff.get("admin", False)) for staff in raw_staff]
+
     def find_staff_by_id(self, staff_id: int) -> Staff | None:
         collection = self.get_collection("data", "staff")
         raw = collection.find_one({"_id": staff_id})
@@ -38,3 +43,11 @@ class UserRateDB:
             collection.insert_one({"_id": account_id})
         except DuplicateKeyError:
             pass
+
+    def send(self, data: dict):
+        collection = self.get_collection("data", "sends")
+        collection.update_one(
+            {"_id": data["_id"]},
+            {"$set": data},
+            upsert=True
+        )

@@ -1,6 +1,7 @@
 #include <Geode/modify/MenuLayer.hpp>
 
 #include "../layers/AdminPage.hpp"
+#include "../managers/API.hpp"
 #include "../managers/Global.hpp"
 
 using namespace geode::prelude;
@@ -8,6 +9,8 @@ using namespace geode::prelude;
 class $modify(RateMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
+
+        API::loadingComplete();
 
         if (const auto menu = getChildByID("bottom-menu"); Global::getInstance()->isMod()) {
             const auto rateSprite = CircleButtonSprite::create(

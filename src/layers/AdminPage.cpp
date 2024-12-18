@@ -1,5 +1,18 @@
 #include "AdminPage.hpp"
 
+#include "SentPopup.hpp"
+
+AdminPage* AdminPage::create() {
+    const auto ret = new AdminPage();
+    if (ret->init()) {
+        ret->autorelease();
+        return ret;
+    }
+
+    delete ret;
+    return nullptr;
+}
+
 bool AdminPage::init() {
     const auto winSize = CCDirector::sharedDirector()->getWinSize();
 
@@ -56,7 +69,8 @@ bool AdminPage::init() {
 }
 
 void AdminPage::onSentLevels(CCObject*) {
-    CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, LevelBrowserLayer::scene(GJSearchObject::create(SearchType::MapPackOnClick, "102063008,111550678"))));
+    //CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, LevelBrowserLayer::scene(GJSearchObject::create(SearchType::MapPackOnClick, "102063008,111550678,113219586,113219585,113219584,113219583,113219582,113219581,113219580,113219579,113219578"))));
+    SentPopup::create()->show();
 }
 
 void AdminPage::onBack(CCObject*) {
@@ -65,14 +79,4 @@ void AdminPage::onBack(CCObject*) {
 
 void AdminPage::keyBackClicked() {
     CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
-}
-
-AdminPage* AdminPage::create() {
-    const auto ret = new AdminPage();
-    if (ret->init()) {
-        ret->autorelease();
-        return ret;
-    }
-    delete ret;
-    return nullptr;
 }
