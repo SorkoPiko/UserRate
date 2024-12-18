@@ -65,7 +65,7 @@ void API::reassignModerator(const int accountID, const bool promote, const std::
 
     body["promote"] = promote;
     body["accountID"] = accountID;
-    body["gjp2"] = acc->m_GJP2;
+    body["gjp2"] = matjson::Value(acc->m_GJP2);
     body["ownerID"] = acc->m_accountID;
 
     sendPostRequest(SERVER_URL "/admin/reassign", body, [callback](const matjson::Value& data) {
