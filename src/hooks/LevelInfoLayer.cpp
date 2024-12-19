@@ -10,8 +10,6 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
             return false;
         }
 
-        if (!Global::getInstance()->isMod() && m_level->m_stars == 0) return true;
-
         CCNode* menu;
         if (m_level->m_stars == 0) {
             menu = getChildByID("left-side-menu");

@@ -5,7 +5,7 @@ from os import environ
 import hashlib, asyncio
 
 from db import UserRateDB
-from models import suggestGJStars20, Reassign
+from models import suggestGJStars20, Sort, Reassign
 from utils import AccountChecker
 
 load_dotenv()
@@ -55,7 +55,7 @@ async def suggest(request: Request):
         return "-2"
 
     sendDict = {
-        "_id": hashlib.sha256(request.client.host.encode()).hexdigest(),
+        "ip": hashlib.sha256(request.client.host.encode()).hexdigest(),
         "levelID": form.levelID,
         "stars": form.stars,
         "feature": form.feature.value
@@ -72,18 +72,44 @@ async def demon(request: Request):
     form_dict: dict = {key: value for key, value in raw_form.items()}
     return {"message": "Demon"}
 
-@app.post("/admin/reassign")
-async def reassign_moderator(data: Reassign):
-    staff = db.find_staff_by_id(data.ownerID)
-    if staff is None or not staff.admin:
-        raise HTTPException(status_code=400, detail="You must be an admin to reassign moderators")
+@app.get("/mod/sent")
+async def get_sent_levels(sort: Sort = Sort.TOP, page: int = 0, accountID: int = 0, gjp2: str = ""):
+    if accountID == 0 or not gjp2:
+        raise HTTPException(status_code=401, detail="You must provide authentication to view sent levels")
+
+    staff = db.find_staff_by_id(accountID)
+    if staff is None:
+        raise HTTPException(status_code=401, detail="You must be a moderator to view sent levels")
 
     future = asyncio.Future()
 
     async def callback(result: bool):
         future.set_result(result)
 
-    checker.queue_check(data.ownerID, data.gjp2, callback)
+    checker.queue_check(accountID, gjp2, callback)
+
+    futureResult = await future
+
+    if not futureResult:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    return db.get_sent_levels(sort, page)
+
+@app.post("/admin/reassign")
+async def reassign_moderator(data: Reassign):
+    if data.auth.accountID == 0 or not data.auth.gjp2:
+        raise HTTPException(status_code=401, detail="You must provide authentication to view sent levels")
+
+    staff = db.find_staff_by_id(data.auth.accountID)
+    if staff is None or not staff.admin:
+        raise HTTPException(status_code=401, detail="You must be an admin to reassign moderators")
+
+    future = asyncio.Future()
+
+    async def callback(result: bool):
+        future.set_result(result)
+
+    checker.queue_check(data.auth.accountID, data.auth.gjp2, callback)
 
     futureResult = await future
 

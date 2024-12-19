@@ -12,6 +12,15 @@ class Feature(Enum):
     LEGENDARY = 3
     MYTHIC = 4
 
+class Sort(Enum):
+    TOP = 0
+    RECENT = 1
+    OLDEST = 2
+
+class Auth(BaseModel):
+    accountID: int
+    gjp2: str
+
 class suggestGJStars20(BaseModel):
     gameVersion: int | None = None
     binaryVersion: int | None = None
@@ -25,8 +34,13 @@ class suggestGJStars20(BaseModel):
     gdw: bool = False
     secret: str | None = None
 
+class Sent(BaseModel):
+    sort: Sort = Sort.TOP
+    page: int = 0
+    accountID: int
+    gjp2: str
+
 class Reassign(BaseModel):
     promote: bool
     accountID: int
-    gjp2: str
-    ownerID: int
+    auth: Auth

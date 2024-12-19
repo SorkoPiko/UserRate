@@ -1,7 +1,6 @@
 #include "API.hpp"
 
 #include "Global.hpp"
-#include "../layers/LoadLayer.hpp"
 
 EventListener<web::WebTask> API::downloadListener;
 std::unique_ptr<web::WebRequest> API::currentRequest;
@@ -65,11 +64,20 @@ void API::showFailurePopup(const std::string &message) {
     )->show();
 }
 
-void API::reassignModerator(const int accountID, const bool promote, const std::function<void(bool)>& callback) {
-    matjson::Value body;
+matjson::Value API::getAuth() {
     const auto acc = GJAccountManager::sharedState();
 
-    if (!acc->m_accountID) {
+    matjson::Value auth;
+    auth["gjp2"] = acc->m_GJP2.c_str();
+    auth["accountID"] = acc->m_accountID;
+
+    return auth;
+}
+
+void API::reassignModerator(const int accountID, const bool promote, const std::function<void(bool)>& callback) {
+    matjson::Value body;
+
+    if (!GJAccountManager::sharedState()->m_accountID) {
         showFailurePopup("You must be logged in to perform this action.");
         callback(false);
         return;
@@ -77,8 +85,7 @@ void API::reassignModerator(const int accountID, const bool promote, const std::
 
     body["promote"] = promote;
     body["accountID"] = accountID;
-    body["gjp2"] = acc->m_GJP2.c_str();
-    body["ownerID"] = acc->m_accountID;
+    body["auth"] = getAuth();
 
     if (!isLoading) {
         loadLayer = LoadLayer::create();
@@ -87,15 +94,12 @@ void API::reassignModerator(const int accountID, const bool promote, const std::
     }
 
     sendPostRequest(SERVER_URL "/admin/reassign", body, [callback](const matjson::Value& data) {
-        if (loadLayer) {
-            loadLayer->finished();
-        }
+        if (loadLayer) loadLayer->finished();
 
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to reassign moderator: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);
-        }
-        else {
+        } else {
             getModerators([](bool) {});
             callback(true);
         }
@@ -110,12 +114,10 @@ void API::getModerators(const std::function<void(bool)>& callback) {
     }
 
     sendGetRequest(SERVER_URL "/mods", [callback](const matjson::Value& data) {
-        if (loadLayer) {
-            loadLayer->finished();
-        }
+        if (loadLayer) loadLayer->finished();
 
         if (data.contains("error")) {
-            showFailurePopup(fmt::format("Failed to get moderators: {}", data["error"].asString().unwrapOrDefault()));
+            queueInMainThread([] {Notification::create("UserRate failed to fetch moderators", NotificationIcon::Error)->show();});
             callback(false);
         } else {
             const auto global = Global::getInstance();
@@ -123,6 +125,32 @@ void API::getModerators(const std::function<void(bool)>& callback) {
             global->setMods(data["mods"].as<std::vector<int>>().unwrapOrDefault());
             global->setAdmins(data["admins"].as<std::vector<int>>().unwrapOrDefault());
 
+            callback(true);
+        }
+    });
+}
+
+void API::getSentLevels(const SentLevelSearchType sort, const int page, const std::function<void(bool)>& callback) {
+    if (!GJAccountManager::sharedState()->m_accountID) {
+        showFailurePopup("You must be logged in to perform this action.");
+        callback(false);
+        return;
+    }
+
+    const auto auth = getAuth();
+    const auto url = fmt::format(SERVER_URL "/mod/sent?sort={}&page={}&accountID={}&gjp2={}",
+        static_cast<int>(sort),
+        page,
+        auth["accountID"].asInt().unwrapOrDefault(),
+        auth["gjp2"].asString().unwrapOrDefault());
+
+    sendGetRequest(url, [this, callback, page](const matjson::Value& data) {
+        if (data.contains("error")) {
+            showFailurePopup(fmt::format("Failed to fetch sent levels: {}", data["error"].asString().unwrapOrDefault()));
+            callback(false);
+        } else {
+            // glm->getOnlineLevels and delegate stuff here
+            Global::getInstance()->setLevelPage(page, data["levels"].as<std::vector<matjson::Value>>().unwrapOrDefault());
             callback(true);
         }
     });

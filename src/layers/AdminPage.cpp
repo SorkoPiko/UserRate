@@ -1,7 +1,5 @@
 #include "AdminPage.hpp"
 
-#include "SentPopup.hpp"
-
 AdminPage* AdminPage::create() {
     const auto ret = new AdminPage();
     if (ret->init()) {
@@ -33,7 +31,7 @@ bool AdminPage::init() {
     closeMenu->setAnchorPoint({ .0f, .5f });
 
     const auto closeBtn = CCMenuItemSpriteExtra::create(
-        CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png"),
+        CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png"),
         this,
         menu_selector(AdminPage::onBack)
     );
@@ -48,16 +46,9 @@ bool AdminPage::init() {
 
     buttonMenu = CCMenu::create();
     buttonMenu->setID("button-menu");
+    mainLayer->addChild(buttonMenu);
 
-    const auto levelButton = CCMenuItemSpriteExtra::create(
-        SearchButton::create("GJ_longBtn04_001.png", "Sent", 0.5, "GJ_sModIcon_001.png"),
-        this,
-        menu_selector(AdminPage::onSentLevels)
-    );
-    levelButton->setID("levels-button");
-    buttonMenu->addChild(levelButton);
-
-    mainLayer->addChildAtPosition(buttonMenu, Anchor::Center, ccp(0, 0), false);
+    //levelList = ListView::create();
 
     addSideArt(mainLayer, SideArt::Bottom);
 
@@ -68,15 +59,104 @@ bool AdminPage::init() {
     return true;
 }
 
-void AdminPage::onSentLevels(CCObject*) {
-    //CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, LevelBrowserLayer::scene(GJSearchObject::create(SearchType::MapPackOnClick, "102063008,111550678,113219586,113219585,113219584,113219583,113219582,113219581,113219580,113219579,113219578"))));
-    SentPopup::create()->show();
-}
-
 void AdminPage::onBack(CCObject*) {
     keyBackClicked();
 }
 
 void AdminPage::keyBackClicked() {
     CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
+}
+
+// yes this is blatantly copied from Creation Rotation (https://github.com/TechStudent10/CreationRotation/blob/21cebb09b53752a90d7b7046b498376fb53a626d/src/layers/Lobby.cpp#L391)
+void AdminPage::createBorders() const {
+    constexpr int SIDE_OFFSET = 7;
+    constexpr int TOP_BOTTOM_OFFSET = 8;
+
+    const auto topSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
+    topSide->setScaleY(
+        levelList->getContentWidth() / topSide->getContentHeight()
+    );
+    topSide->setRotation(90.f);
+    topSide->setPosition({
+        levelList->m_width / 2,
+        levelList->m_height + TOP_BOTTOM_OFFSET
+    });
+    topSide->setID("top-border");
+    topSide->setZOrder(3);
+
+    const auto bottomSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
+    bottomSide->setScaleY(
+        levelList->getContentWidth() / bottomSide->getContentHeight()
+    );
+    bottomSide->setRotation(-90.f);
+    bottomSide->setPosition({
+        levelList->m_width / 2,
+        0 - TOP_BOTTOM_OFFSET
+    });
+    bottomSide->setID("bottom-border");
+    bottomSide->setZOrder(3);
+
+    const auto leftSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
+    leftSide->setScaleY(
+        (levelList->getContentHeight() + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
+    );
+    leftSide->setPosition({
+        -SIDE_OFFSET,
+        levelList->m_height / 2
+    });
+    leftSide->setID("left-border");
+
+    const auto rightSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
+    rightSide->setScaleY(
+        (levelList->getContentHeight() + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
+    );
+    rightSide->setRotation(180.f);
+    rightSide->setPosition({
+        levelList->m_width + SIDE_OFFSET,
+        levelList->m_height / 2
+    });
+    rightSide->setID("right-border");
+
+    levelList->addChild(topSide);
+    levelList->addChild(bottomSide);
+    levelList->addChild(leftSide);
+    levelList->addChild(rightSide);
+
+
+    const auto topLeftCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    topLeftCorner->setPosition({
+        leftSide->getPositionX(), topSide->getPositionY()
+    });
+    topLeftCorner->setZOrder(2);
+    topLeftCorner->setID("top-left-corner");
+
+    auto topRightCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    topRightCorner->setFlipX(true);
+    topRightCorner->setPosition({
+        rightSide->getPositionX(), topSide->getPositionY()
+    });
+    topRightCorner->setZOrder(2);
+    topRightCorner->setID("top-right-corner");
+
+    auto bottomLeftCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    bottomLeftCorner->setFlipY(true);
+    bottomLeftCorner->setPosition({
+        leftSide->getPositionX(), bottomSide->getPositionY()
+    });
+    bottomLeftCorner->setZOrder(2);
+    bottomLeftCorner->setID("bottom-left-corner");
+
+    auto bottomRightCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    bottomRightCorner->setFlipX(true);
+    bottomRightCorner->setFlipY(true);
+    bottomRightCorner->setPosition({
+        rightSide->getPositionX(), bottomSide->getPositionY()
+    });
+    bottomRightCorner->setZOrder(2);
+    bottomRightCorner->setID("bottom-right-corner");
+
+    levelList->addChild(topLeftCorner);
+    levelList->addChild(topRightCorner);
+    levelList->addChild(bottomLeftCorner);
+    levelList->addChild(bottomRightCorner);
 }

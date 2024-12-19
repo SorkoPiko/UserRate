@@ -10,13 +10,14 @@ class AdminPage final : public CCLayer {
     CCSprite* background = nullptr;
     CCMenu* closeMenu = nullptr;
     CCMenu* buttonMenu = nullptr;
+    CustomListView* levelList = nullptr;
 
     bool init() override;
 
-    void onSentLevels(CCObject*);
-
     void onBack(CCObject*);
     void keyBackClicked() override;
+
+    void createBorders() const;
 
 public:
     static AdminPage* create();
