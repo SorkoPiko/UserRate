@@ -13,7 +13,7 @@ class $modify(RateProfilePage, ProfilePage) {
     void loadPageFromUserInfo(GJUserScore* user) {
         ProfilePage::loadPageFromUserInfo(user);
 
-        const auto global = Global::getInstance();
+        const auto global = Global::get();
         if (!global->isAdmin()) return;
 
         if (const auto leftMenu = m_mainLayer->getChildByID("left-menu")) {
@@ -40,7 +40,7 @@ class $modify(RateProfilePage, ProfilePage) {
     }
 
     void onReassign(CCObject*) {
-        const auto global = Global::getInstance();
+        const auto global = Global::get();
         const bool isMod = global->isUserMod(m_accountID);
 
         std::string popupContent;

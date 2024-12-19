@@ -34,18 +34,18 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
     }
 
     void onRateStarsMod(CCObject* sender) {
-        Global::getInstance()->setCustomRating(false);
+        Global::get()->setCustomRating(false);
         LevelInfoLayer::onRateStarsMod(sender);
     }
 
     void onRateDemon(CCObject* sender) {
-        Global::getInstance()->setCustomRating(false);
+        Global::get()->setCustomRating(false);
         LevelInfoLayer::onRateDemon(sender);
     }
 
     void onCustomRate(CCObject*) {
         log::info("custom rate");
-        Global::getInstance()->setCustomRating(true);
+        Global::get()->setCustomRating(true);
 
         const auto layer = RateStarsLayer::create(m_level->m_levelID.value(), m_level->isPlatformer(), true);
         layer->show();
@@ -53,7 +53,7 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
 
     void onCustomDemonRate(CCObject*) {
         log::info("custom demon rate");
-        Global::getInstance()->setCustomRating(true);
+        Global::get()->setCustomRating(true);
 
         const auto layer = RateDemonLayer::create(this->m_level->m_levelID.value());
         layer->m_delegate = this;

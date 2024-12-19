@@ -12,7 +12,7 @@ class $modify(RateMenuLayer, MenuLayer) {
 
         API::loadingComplete();
 
-        if (const auto menu = getChildByID("bottom-menu"); Global::getInstance()->isMod()) {
+        if (const auto menu = getChildByID("bottom-menu"); Global::get()->isMod()) {
             const auto rateSprite = CircleButtonSprite::create(
                 CCSprite::createWithSpriteFrameName("GJ_bigStar_noShadow_001.png"),
                 CircleBaseColor::Cyan,

@@ -6,12 +6,12 @@ using namespace geode::prelude;
 
 class $modify(RateGameLevelManager, GameLevelManager) {
     bool hasRatedDemon(const int id) {
-        if (Global::getInstance()->isCustomRating()) return false;
+        if (Global::get()->isCustomRating()) return false;
         return GameLevelManager::hasRatedDemon(id);
     }
 
     // void markLevelAsRatedDemon(const int id) {
-    //     if (Global::getInstance()->isCustomRating) return;
+    //     if (Global::get()->isCustomRating) return;
     //     GameLevelManager::markLevelAsRatedDemon(id);
     // }
 };

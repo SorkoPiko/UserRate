@@ -48,7 +48,20 @@ bool AdminPage::init() {
     buttonMenu->setID("button-menu");
     mainLayer->addChild(buttonMenu);
 
-    //levelList = ListView::create();
+    title = CCLabelBMFont::create("Sent Levels", "bigFont.fnt");
+    title->limitLabelWidth(275.f, 1.f, 0.1f);
+    title->setPosition({winSize.width / 2, winSize.height - 25});
+
+    listBG = CCLayerColor::create({ 0, 0, 0, 85 });
+    listBG->ignoreAnchorPointForPosition(false);
+    listBG->setAnchorPoint({ 0.5f, 0.5f });
+    listBG->setPosition({winSize.width / 2, winSize.height / 2 - 10.f});
+    listBG->setZOrder(-1);
+    listBG->setID("list-bg");
+    listBG->setContentSize({winSize.width / 1.5f, 220});
+    mainLayer->addChild(listBG);
+
+    createBorders();
 
     addSideArt(mainLayer, SideArt::Bottom);
 
@@ -57,6 +70,10 @@ bool AdminPage::init() {
     addChild(mainLayer);
 
     return true;
+}
+
+void AdminPage::loadLevelPage() {
+
 }
 
 void AdminPage::onBack(CCObject*) {
@@ -69,28 +86,32 @@ void AdminPage::keyBackClicked() {
 
 // yes this is blatantly copied from Creation Rotation (https://github.com/TechStudent10/CreationRotation/blob/21cebb09b53752a90d7b7046b498376fb53a626d/src/layers/Lobby.cpp#L391)
 void AdminPage::createBorders() const {
+    const auto winSize = CCDirector::sharedDirector()->getWinSize();
+    const float width = winSize.width / 1.5f;
+    constexpr float height = 220.f;
+    
     constexpr int SIDE_OFFSET = 7;
     constexpr int TOP_BOTTOM_OFFSET = 8;
 
     const auto topSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     topSide->setScaleY(
-        levelList->getContentWidth() / topSide->getContentHeight()
+        listBG->getContentWidth() / topSide->getContentHeight()
     );
     topSide->setRotation(90.f);
     topSide->setPosition({
-        levelList->m_width / 2,
-        levelList->m_height + TOP_BOTTOM_OFFSET
+        width / 2,
+        height + TOP_BOTTOM_OFFSET
     });
     topSide->setID("top-border");
     topSide->setZOrder(3);
 
     const auto bottomSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     bottomSide->setScaleY(
-        levelList->getContentWidth() / bottomSide->getContentHeight()
+        listBG->getContentWidth() / bottomSide->getContentHeight()
     );
     bottomSide->setRotation(-90.f);
     bottomSide->setPosition({
-        levelList->m_width / 2,
+        width / 2,
         0 - TOP_BOTTOM_OFFSET
     });
     bottomSide->setID("bottom-border");
@@ -98,29 +119,29 @@ void AdminPage::createBorders() const {
 
     const auto leftSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     leftSide->setScaleY(
-        (levelList->getContentHeight() + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
+        (listBG->getContentHeight() + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
     );
     leftSide->setPosition({
         -SIDE_OFFSET,
-        levelList->m_height / 2
+        height / 2
     });
     leftSide->setID("left-border");
 
     const auto rightSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     rightSide->setScaleY(
-        (levelList->getContentHeight() + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
+        (listBG->getContentHeight() + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
     );
     rightSide->setRotation(180.f);
     rightSide->setPosition({
-        levelList->m_width + SIDE_OFFSET,
-        levelList->m_height / 2
+        width + SIDE_OFFSET,
+        height / 2
     });
     rightSide->setID("right-border");
 
-    levelList->addChild(topSide);
-    levelList->addChild(bottomSide);
-    levelList->addChild(leftSide);
-    levelList->addChild(rightSide);
+    listBG->addChild(topSide);
+    listBG->addChild(bottomSide);
+    listBG->addChild(leftSide);
+    listBG->addChild(rightSide);
 
 
     const auto topLeftCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
@@ -155,8 +176,8 @@ void AdminPage::createBorders() const {
     bottomRightCorner->setZOrder(2);
     bottomRightCorner->setID("bottom-right-corner");
 
-    levelList->addChild(topLeftCorner);
-    levelList->addChild(topRightCorner);
-    levelList->addChild(bottomLeftCorner);
-    levelList->addChild(bottomRightCorner);
+    listBG->addChild(topLeftCorner);
+    listBG->addChild(topRightCorner);
+    listBG->addChild(bottomLeftCorner);
+    listBG->addChild(bottomRightCorner);
 }

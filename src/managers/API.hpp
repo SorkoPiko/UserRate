@@ -4,7 +4,7 @@
 #include <Geode/utils/web.hpp>
 
 #include "../layers/LoadLayer.hpp"
-#include "../types/SentLevelSearchType.hpp"
+#include "../types/SentLevelFilters.hpp"
 
 using namespace geode::prelude;
 
@@ -20,12 +20,14 @@ class API {
     static void showFailurePopup(const std::string& message);
     static matjson::Value getAuth();
 
+    ~API() {GameLevelManager::get()->m_levelManagerDelegate = nullptr;}
+
 public:
     static void loadingComplete() {isLoading = false;}
 
     static void reassignModerator(int accountID, bool promote, const std::function<void(bool)>& callback);
     static void getModerators(const std::function<void(bool)>& callback);
-    static void getSentLevels(SentLevelSearchType sort, int page, const std::function<void(bool)>& callback);
+    static void getSentLevels(SentLevelFilters filters, const std::function<void(bool)>& callback);
 };
 
 

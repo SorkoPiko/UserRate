@@ -1,6 +1,8 @@
 #include "API.hpp"
 
 #include "Global.hpp"
+#include "../delegates/GLMDelegate.hpp"
+#include "../types/SentLevel.hpp"
 
 EventListener<web::WebTask> API::downloadListener;
 std::unique_ptr<web::WebRequest> API::currentRequest;
@@ -120,7 +122,7 @@ void API::getModerators(const std::function<void(bool)>& callback) {
             queueInMainThread([] {Notification::create("UserRate failed to fetch moderators", NotificationIcon::Error)->show();});
             callback(false);
         } else {
-            const auto global = Global::getInstance();
+            const auto global = Global::get();
 
             global->setMods(data["mods"].as<std::vector<int>>().unwrapOrDefault());
             global->setAdmins(data["admins"].as<std::vector<int>>().unwrapOrDefault());
@@ -130,7 +132,7 @@ void API::getModerators(const std::function<void(bool)>& callback) {
     });
 }
 
-void API::getSentLevels(const SentLevelSearchType sort, const int page, const std::function<void(bool)>& callback) {
+void API::getSentLevels(const SentLevelFilters filters, const std::function<void(bool)>& callback) {
     if (!GJAccountManager::sharedState()->m_accountID) {
         showFailurePopup("You must be logged in to perform this action.");
         callback(false);
@@ -139,19 +141,47 @@ void API::getSentLevels(const SentLevelSearchType sort, const int page, const st
 
     const auto auth = getAuth();
     const auto url = fmt::format(SERVER_URL "/mod/sent?sort={}&page={}&accountID={}&gjp2={}",
-        static_cast<int>(sort),
-        page,
+        static_cast<int>(filters.sort),
+        filters.page,
         auth["accountID"].asInt().unwrapOrDefault(),
         auth["gjp2"].asString().unwrapOrDefault());
 
-    sendGetRequest(url, [this, callback, page](const matjson::Value& data) {
+    sendGetRequest(url, [callback, filters](const matjson::Value& data) {
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to fetch sent levels: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);
         } else {
-            // glm->getOnlineLevels and delegate stuff here
-            Global::getInstance()->setLevelPage(page, data["levels"].as<std::vector<matjson::Value>>().unwrapOrDefault());
-            callback(true);
+            const auto global = Global::get();
+            const auto levels = data["levels"].as<std::vector<SentLevel>>().unwrapOrDefault();
+
+            global->setLevelPage(filters.page, levels);
+
+            std::vector<int> levelIDs;
+            levelIDs.reserve(levels.size());
+            std::ranges::transform(levels, std::back_inserter(levelIDs), [](const SentLevel& level) {return level.id;});
+
+            const auto remaining = global->allCached(levelIDs);
+            if (remaining.empty()) {
+                callback(true);
+                return;
+            }
+
+            const auto glm = GameLevelManager::get();
+            auto delegate = GLMDelegate();
+            delegate.setCallback([callback, global](CCArray* delegateLevels, const char* error, const int error2) {
+                if (delegateLevels) {
+                    for (GJGameLevel* level : CCArrayExt<GJGameLevel*>(delegateLevels)) {
+                        global->addLevel(level->m_levelID, level->m_levelName, level->isPlatformer());
+                    }
+                    callback(true);
+                } else {
+                    showFailurePopup(fmt::format("Failed to fetch sent levels: {} ({})", error, error2));
+                    callback(false);
+                }
+            });
+
+            glm->m_levelManagerDelegate = &delegate;
+            glm->getOnlineLevels(GJSearchObject::create(SearchType::Type26, fmt::format("{}", fmt::join(remaining, ","))));
         }
     });
 }

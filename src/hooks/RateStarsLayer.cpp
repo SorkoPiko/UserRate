@@ -6,7 +6,7 @@ using namespace geode::prelude;
 
 class $modify(RateRateStarsLayer, RateStarsLayer) {
     void onClose(CCObject* sender) {
-        Global::getInstance()->setCustomRating(false);
+        Global::get()->setCustomRating(false);
         RateStarsLayer::onClose(sender);
     }
 };

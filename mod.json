@@ -13,26 +13,16 @@
 	"description": "",
 	"links": {
 		"source": "https://github.com/SorkoPiko/UserRate",
-		"community": "https://discord.gg/8uPFxhxBX9"
+		"community": "https://discord.gg/MUhUgngCF6"
 	},
 	"tags": [
 		"universal",
-		"gameplay",
-		"editor",
-		"offline",
 		"online",
 		"enhancement",
-		"music",
 		"interface",
-		"bugfix",
 		"utility",
-		"performance",
 		"customization",
-		"content",
-		"developer",
-		"cheats",
-		"paid",
-		"joke"
+		"content"
 	],
 	"dependencies": [
 		{

@@ -3,7 +3,7 @@
 
 using namespace geode::prelude;
 
-// thanks firee (https://github.com/FireMario211/Object-Workshop/blob/main/src/ui/auth/AuthLoadLayer.hpp)
+// thanks firee (github.com/FireMario211/Object-Workshop/blob/dad5b6aa4d9190caaf513fe0abea6eb3cbfbcb22/src/ui/auth/AuthLoadLayer.hpp)
 
 class LoadLayer final : public FLAlertLayer {
     LoadingCircle* m_loadingCircle = nullptr;
@@ -13,6 +13,5 @@ public:
     void finished();
     static LoadLayer* create();
 };
-
 
 #endif
