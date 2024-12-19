@@ -3,7 +3,7 @@
 
 Description
 
-For any questions, join the Discord: [https://discord.gg/https://discord.gg/MUhUgngCF6](https://discord.gg/8uPFxhxBX9)
+For any questions, join the Discord: [https://discord.gg/MUhUgngCF6](https://discord.gg/MUhUgngCF6)
 
 <img src="logo.png" width="150" alt="the mod's logo" />
 
