@@ -27,7 +27,7 @@ public:
 
     static void reassignModerator(int accountID, bool promote, const std::function<void(bool)>& callback);
     static void getModerators(const std::function<void(bool)>& callback);
-    static void getSentLevels(SentLevelFilters filters, const std::function<void(bool)>& callback);
+    static void getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback);
 };
 
 

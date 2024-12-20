@@ -106,7 +106,18 @@ class UserRateDB:
             "stars_spread": stars_spread
         }
 
-    def get_sent_levels(self, sort: Sort, page: int = 0, page_size: int = 50):
+    def get_sent_levels(
+            self,
+            sort: Sort,
+            page: int = 0,
+            page_size: int = 50,
+            min_send_count: int = 0,
+            max_send_count: int = None,
+            min_avg_stars: int = 0,
+            max_avg_stars: int = 10,
+            min_avg_feature: int = 0,
+            max_avg_feature: int = 4
+    ):
         collection = self.get_collection("data", "sends")
 
         if sort == Sort.RECENT:
@@ -122,12 +133,26 @@ class UserRateDB:
             {"$group": {
                 "_id": "$levelID",
                 "sendCount": {"$sum": 1},
-                "mostRecentSend": {"$max": "$timestamp"}
+                "mostRecentSend": {"$max": "$timestamp"},
+                "avgStars": {"$avg": "$stars"},
+                "avgFeature": {"$avg": "$feature"}
+            }},
+            {"$match": {
+                "sendCount": {"$gte": min_send_count},
+                "avgStars": {"$gte": min_avg_stars},
+                "avgFeature": {"$gte": min_avg_feature}
             }},
             {"$sort": dict(sort_criteria)},
             {"$skip": page * page_size},
             {"$limit": page_size}
         ]
+
+        if max_send_count is not None:
+            pipeline[1]["$match"]["sendCount"]["$lte"] = max_send_count
+        if max_avg_stars is not None:
+            pipeline[1]["$match"]["avgStars"]["$lte"] = max_avg_stars
+        if max_avg_feature is not None:
+            pipeline[1]["$match"]["avgFeature"]["$lte"] = max_avg_feature
 
         results = list(collection.aggregate(pipeline))
 

@@ -10,7 +10,7 @@
 	"name": "UserRate",
 	"version": "v1.0.0",
 	"developer": "SorkoPiko",
-	"description": "",
+	"description": "Allows anyone to send levels for a rating!",
 	"links": {
 		"source": "https://github.com/SorkoPiko/UserRate",
 		"community": "https://discord.gg/MUhUgngCF6"
@@ -27,7 +27,7 @@
 	"dependencies": [
 		{
 			"id": "geode.node-ids",
-			"version": ">=v1.15.0",
+			"version": ">=v1.18.0",
 			"importance": "required"
 		}
 	]

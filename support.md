@@ -6,4 +6,4 @@ If you like my work and want to support me, you can buy me a coffee on Ko-fi. Th
 
 # Support the mod (forestg10)
 
-Your help keeps the servers running! You can support us via CashApp at $forestg10 or through [Ko-fi](https://ko-fi.com/forestg10). Every bit of support is greatly appreciated!
+Your help keeps the servers running! You can support us via CashApp (preferred) at `$forestg10` or through [Ko-fi](https://ko-fi.com/forestg10). Every bit of support is greatly appreciated!

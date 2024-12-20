@@ -1,5 +1,7 @@
 #include "AdminPage.hpp"
 
+#include "SearchOptionsPopup.hpp"
+
 AdminPage* AdminPage::create() {
     const auto ret = new AdminPage();
     if (ret->init()) {
@@ -15,9 +17,11 @@ bool AdminPage::init() {
     const auto winSize = CCDirector::sharedDirector()->getWinSize();
 
     mainLayer = CCNode::create();
+    mainLayer->setID("main-layer");
     mainLayer->setContentSize(winSize);
 
     background = CCSprite::create("GJ_gradientBG.png");
+    background->setID("background");
     background->setScale(winSize.width / background->getContentWidth());
     background->setScaleY(winSize.height / background->getContentHeight());
     background->setAnchorPoint({0, 0});
@@ -51,17 +55,45 @@ bool AdminPage::init() {
     title = CCLabelBMFont::create("Sent Levels", "bigFont.fnt");
     title->limitLabelWidth(275.f, 1.f, 0.1f);
     title->setPosition({winSize.width / 2, winSize.height - 25});
+    mainLayer->addChild(title);
 
-    listBG = CCLayerColor::create({ 0, 0, 0, 85 });
-    listBG->ignoreAnchorPointForPosition(false);
-    listBG->setAnchorPoint({ 0.5f, 0.5f });
-    listBG->setPosition({winSize.width / 2, winSize.height / 2 - 10.f});
-    listBG->setZOrder(-1);
-    listBG->setID("list-bg");
-    listBG->setContentSize({winSize.width / 1.5f, 220});
-    mainLayer->addChild(listBG);
+    listLayer = CCNode::create();
+    listLayer->ignoreAnchorPointForPosition(false);
+    listLayer->setAnchorPoint({ 0.5f, 0.5f });
+    listLayer->setPosition({winSize.width / 2, winSize.height / 2 - 10.f});
+    listLayer->setID("list-layer");
+    listLayer->setContentSize({winSize.width / 1.5f, 220});
+    mainLayer->addChild(listLayer);
 
     createBorders();
+
+    listBG = CCLayerColor::create({ 0, 0, 0, 85 });
+    listBG->setZOrder(-1);
+    listBG->setID("list-bg");
+    listBG->setContentSize(listLayer->getContentSize());
+    listLayer->addChild(listBG);
+
+    optionsMenu = CCMenu::create();
+    optionsMenu->setID("options-menu");
+    optionsMenu->setContentHeight(100);
+    optionsMenu->setAnchorPoint({ 1, 0 });
+    optionsMenu->setScale(.65f);
+
+    const auto filtersBase = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_checkOff_001.png"), // yes this is the checkbox i couldn't find anything else ok?
+        this,
+        menu_selector(AdminPage::openFilters)
+    );
+
+    const auto filtersTop = CCSprite::createWithSpriteFrameName("GJ_filterIcon_001.png");
+    filtersTop->setScale(.8f);
+    filtersBase->addChildAtPosition(filtersTop, Anchor::Center);
+
+    filtersBase->setID("options-button");
+    optionsMenu->addChild(filtersBase);
+
+    optionsMenu->setLayout(ColumnLayout::create()->setAxisReverse(true)->setAxisAlignment(AxisAlignment::End));
+    listLayer->addChildAtPosition(optionsMenu, Anchor::Left, ccp(-20, 50));
 
     addSideArt(mainLayer, SideArt::Bottom);
 
@@ -70,6 +102,12 @@ bool AdminPage::init() {
     addChild(mainLayer);
 
     return true;
+}
+
+void AdminPage::openFilters(CCObject*) {
+    const auto filtersPopup = SearchOptionsPopup::create(&filters);
+    filtersPopup->setZOrder(100);
+    filtersPopup->show();
 }
 
 void AdminPage::loadLevelPage() {
@@ -84,7 +122,8 @@ void AdminPage::keyBackClicked() {
     CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
 }
 
-// yes this is blatantly copied from Creation Rotation (https://github.com/TechStudent10/CreationRotation/blob/21cebb09b53752a90d7b7046b498376fb53a626d/src/layers/Lobby.cpp#L391)
+// yes this is blatantly copied from Creation Rotation
+// https://github.com/TechStudent10/CreationRotation/blob/21cebb09b53752a90d7b7046b498376fb53a626d/src/layers/Lobby.cpp#L391
 void AdminPage::createBorders() const {
     const auto winSize = CCDirector::sharedDirector()->getWinSize();
     const float width = winSize.width / 1.5f;
@@ -95,7 +134,7 @@ void AdminPage::createBorders() const {
 
     const auto topSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     topSide->setScaleY(
-        listBG->getContentWidth() / topSide->getContentHeight()
+        listLayer->getContentWidth() / topSide->getContentHeight()
     );
     topSide->setRotation(90.f);
     topSide->setPosition({
@@ -107,7 +146,7 @@ void AdminPage::createBorders() const {
 
     const auto bottomSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     bottomSide->setScaleY(
-        listBG->getContentWidth() / bottomSide->getContentHeight()
+        listLayer->getContentWidth() / bottomSide->getContentHeight()
     );
     bottomSide->setRotation(-90.f);
     bottomSide->setPosition({
@@ -119,7 +158,7 @@ void AdminPage::createBorders() const {
 
     const auto leftSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     leftSide->setScaleY(
-        (listBG->getContentHeight() + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
+        (listLayer->getContentHeight() + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
     );
     leftSide->setPosition({
         -SIDE_OFFSET,
@@ -129,7 +168,7 @@ void AdminPage::createBorders() const {
 
     const auto rightSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     rightSide->setScaleY(
-        (listBG->getContentHeight() + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
+        (listLayer->getContentHeight() + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
     );
     rightSide->setRotation(180.f);
     rightSide->setPosition({
@@ -138,10 +177,10 @@ void AdminPage::createBorders() const {
     });
     rightSide->setID("right-border");
 
-    listBG->addChild(topSide);
-    listBG->addChild(bottomSide);
-    listBG->addChild(leftSide);
-    listBG->addChild(rightSide);
+    listLayer->addChild(topSide);
+    listLayer->addChild(bottomSide);
+    listLayer->addChild(leftSide);
+    listLayer->addChild(rightSide);
 
 
     const auto topLeftCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
@@ -151,7 +190,7 @@ void AdminPage::createBorders() const {
     topLeftCorner->setZOrder(2);
     topLeftCorner->setID("top-left-corner");
 
-    auto topRightCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    const auto topRightCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
     topRightCorner->setFlipX(true);
     topRightCorner->setPosition({
         rightSide->getPositionX(), topSide->getPositionY()
@@ -159,7 +198,7 @@ void AdminPage::createBorders() const {
     topRightCorner->setZOrder(2);
     topRightCorner->setID("top-right-corner");
 
-    auto bottomLeftCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    const auto bottomLeftCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
     bottomLeftCorner->setFlipY(true);
     bottomLeftCorner->setPosition({
         leftSide->getPositionX(), bottomSide->getPositionY()
@@ -167,7 +206,7 @@ void AdminPage::createBorders() const {
     bottomLeftCorner->setZOrder(2);
     bottomLeftCorner->setID("bottom-left-corner");
 
-    auto bottomRightCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
+    const auto bottomRightCorner = CCSprite::createWithSpriteFrameName("GJ_table_corner_001.png");
     bottomRightCorner->setFlipX(true);
     bottomRightCorner->setFlipY(true);
     bottomRightCorner->setPosition({
@@ -176,8 +215,8 @@ void AdminPage::createBorders() const {
     bottomRightCorner->setZOrder(2);
     bottomRightCorner->setID("bottom-right-corner");
 
-    listBG->addChild(topLeftCorner);
-    listBG->addChild(topRightCorner);
-    listBG->addChild(bottomLeftCorner);
-    listBG->addChild(bottomRightCorner);
+    listLayer->addChild(topLeftCorner);
+    listLayer->addChild(topRightCorner);
+    listLayer->addChild(bottomLeftCorner);
+    listLayer->addChild(bottomRightCorner);
 }

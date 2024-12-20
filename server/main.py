@@ -43,6 +43,9 @@ async def suggest(request: Request):
     form_dict = convert_fields_to_int(form_dict, ["gameVersion", "binaryVersion", "accountID", "levelID", "stars", "feature"])
     form_dict = convert_fields_to_bool(form_dict, ["gdw"])
 
+    if "feature" in form_dict and form_dict["feature"] not in [0, 1, 2, 3, 4]:
+        return "-2"
+
     form = suggestGJStars20(**form_dict)
 
     if not form.gjp2:
@@ -51,7 +54,7 @@ async def suggest(request: Request):
     if form.stars is None or form.feature is None:
         return "-2"
 
-    if form.stars < 0 or form.stars > 10:
+    if form.stars < 1 or form.stars > 10:
         return "-2"
 
     sendDict = {
@@ -73,7 +76,18 @@ async def demon(request: Request):
     return {"message": "Demon"}
 
 @app.get("/mod/sent")
-async def get_sent_levels(sort: Sort = Sort.TOP, page: int = 0, accountID: int = 0, gjp2: str = ""):
+async def get_sent_levels(
+        sort: Sort = Sort.TOP,
+        page: int = 0,
+        min_send_count: int = 0,
+        max_send_count: int = None,
+        min_avg_stars: int = 0,
+        max_avg_stars: int = 10,
+        min_avg_feature: int = 0,
+        max_avg_feature: int = 4,
+        accountID: int = 0,
+        gjp2: str = ""
+):
     if accountID == 0 or not gjp2:
         raise HTTPException(status_code=401, detail="You must provide authentication to view sent levels")
 
@@ -93,7 +107,7 @@ async def get_sent_levels(sort: Sort = Sort.TOP, page: int = 0, accountID: int =
     if not futureResult:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    return db.get_sent_levels(sort, page)
+    return db.get_sent_levels(sort, page, min_send_count, max_send_count, min_avg_stars, max_avg_stars, min_avg_feature, max_avg_feature)
 
 @app.post("/admin/reassign")
 async def reassign_moderator(data: Reassign):

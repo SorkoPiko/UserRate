@@ -6,6 +6,17 @@ std::string floatToString(const float number, const int precision) {
     return stream.str();
 }
 
+BarChartNode* BarChartNode::create(const std::vector<BarChartData>& data, const CCSize& size, const float labelWidth, const float barHeight) {
+    const auto ret = new BarChartNode();
+    if (ret->init(data, size, labelWidth, barHeight)) {
+        ret->autorelease();
+        return ret;
+    }
+
+    delete ret;
+    return nullptr;
+}
+
 bool BarChartNode::init(std::vector<BarChartData> data, const CCSize& size, const float labelWidth, const float barHeight) {
     if (!CCNode::init()) return false;
 
@@ -43,17 +54,6 @@ BarChartBar BarChartNode::calculateBar(const BarChartData &barData, const int in
     if (percentageLabel->getScaledContentHeight() > barHeight) percentageLabel->setScale(percentageLabel->getScale() * (barHeight / percentageLabel->getScaledContentHeight()));
     addChild(percentageLabel);
     return {barData.color, height};
-}
-
-
-BarChartNode* BarChartNode::create(const std::vector<BarChartData>& data, const CCSize& size, const float labelWidth, const float barHeight) {
-    if (const auto newNode = new BarChartNode(); newNode->init(data, size, labelWidth, barHeight)) {
-        newNode->autorelease();
-        return newNode;
-    } else {
-        delete newNode;
-        return nullptr;
-    }
 }
 
 void BarChartNode::draw() {

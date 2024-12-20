@@ -132,7 +132,7 @@ void API::getModerators(const std::function<void(bool)>& callback) {
     });
 }
 
-void API::getSentLevels(const SentLevelFilters filters, const std::function<void(bool)>& callback) {
+void API::getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback) {
     if (!GJAccountManager::sharedState()->m_accountID) {
         showFailurePopup("You must be logged in to perform this action.");
         callback(false);
@@ -140,13 +140,32 @@ void API::getSentLevels(const SentLevelFilters filters, const std::function<void
     }
 
     const auto auth = getAuth();
-    const auto url = fmt::format(SERVER_URL "/mod/sent?sort={}&page={}&accountID={}&gjp2={}",
-        static_cast<int>(filters.sort),
-        filters.page,
-        auth["accountID"].asInt().unwrapOrDefault(),
-        auth["gjp2"].asString().unwrapOrDefault());
+    std::ostringstream url;
+    url << SERVER_URL << "/mod/sent?sort=" << filters.sort
+        << "&page=" << filters.page
+        << "&accountID=" << auth["accountID"].asInt().unwrapOrDefault()
+        << "&gjp2=" << auth["gjp2"].asString().unwrapOrDefault();
 
-    sendGetRequest(url, [callback, filters](const matjson::Value& data) {
+    if (filters.minSends > 0) {
+        url << "&min_send_count=" << filters.minSends;
+    }
+    if (filters.maxSends.has_value()) {
+        url << "&max_send_count=" << filters.maxSends.value();
+    }
+    if (filters.minAvgStars > 0) {
+        url << "&min_avg_stars=" << filters.minAvgStars;
+    }
+    if (filters.maxAvgStars < 10) {
+        url << "&max_avg_stars=" << filters.maxAvgStars;
+    }
+    if (filters.minAvgFeature > 0) {
+        url << "&min_avg_feature=" << filters.minAvgFeature;
+    }
+    if (filters.maxAvgFeature < 4) {
+        url << "&max_avg_feature=" << filters.maxAvgFeature;
+    }
+
+    sendGetRequest(url.str(), [callback, filters](const matjson::Value& data) {
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to fetch sent levels: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);

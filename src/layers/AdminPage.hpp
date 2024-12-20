@@ -12,13 +12,17 @@ class AdminPage final : public CCLayer {
     CCSprite* background = nullptr;
     CCMenu* closeMenu = nullptr;
     CCMenu* buttonMenu = nullptr;
+    CCNode* listLayer = nullptr;
     CustomListView* levelList = nullptr;
     CCLayerColor* listBG = nullptr;
     CCLabelBMFont* title = nullptr;
+    CCMenu* optionsMenu = nullptr;
 
     SentLevelFilters filters{};
 
     bool init() override;
+
+    void openFilters(CCObject*);
 
     void loadLevelPage();
 
