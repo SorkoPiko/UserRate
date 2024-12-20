@@ -46,6 +46,21 @@ void Option::createLabel(CCNode* parent, const std::string& font, const std::str
     parent->addChild(label, zOrder);
 }
 
+CCScale9Sprite* Option::createEnumLabel(CCLayer* parent, CCLabelBMFont*& label, const std::string& font, const std::string& placeholder, const float maxWidth, const CCPoint& position, const CCPoint& bgSize, const int zOrder) {
+    label = CCLabelBMFont::create(placeholder.c_str(), font.c_str());
+    parent->addChild(label, zOrder);
+    label->setPosition(position);
+    label->setScale(0.6f * label->getContentSize().width > maxWidth ? maxWidth / label->getContentSize().width : 0.6f);
+    const auto bg = CCScale9Sprite::create("square02_small.png");
+    parent->addChild(bg, zOrder + 1);
+    bg->setContentSize(bgSize);
+    bg->setScale(0.5f);
+    bg->setContentSize(bg->getContentSize() / 0.5f);
+    bg->setPosition(position);
+    bg->setOpacity(100);
+    return bg;
+}
+
 void Option::setNumber(std::optional<int> value, TextInput*& textField, std::optional<int> defaultValue) {
     if (value.has_value()) textField->setString(fmt::format("{}", value.value()));
     else if (defaultValue.has_value()) textField->setString(fmt::format("{}", defaultValue.value()));

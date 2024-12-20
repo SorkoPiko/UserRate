@@ -35,6 +35,15 @@ struct SentLevelFilters {
     bool operator!=(const SentLevelFilters& other) const {
         return !(*this == other);
     }
+
+    static const char* sortToString(const SentLevelSearchType type) {
+        switch (type) {
+            case TOP: return "Top";
+            case RECENT: return "Recent";
+            case OLDEST: return "Oldest";
+            default: return "Unknown";
+        }
+    }
 };
 
 #endif

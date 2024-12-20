@@ -4,24 +4,49 @@
 #include "../delegates/GLMDelegate.hpp"
 #include "../types/SentLevel.hpp"
 
+std::string API::token;
 EventListener<web::WebTask> API::downloadListener;
 std::unique_ptr<web::WebRequest> API::currentRequest;
+EventListener<web::WebTask> API::tokenListener;
+std::unique_ptr<web::WebRequest> API::tokenRequest;
 LoadLayer* API::loadLayer;
 bool API::isLoading = true;
 
-void API::sendPostRequest(const std::string& url, const matjson::Value& body, const std::function<void(const matjson::Value&)>& callback) {
-    downloadListener.bind([callback] (web::WebTask::Event* e) {
+void API::sendPostRequest(const std::string& url, const matjson::Value& body, const bool authRequired, const std::function<void(const matjson::Value&)>& callback) {
+    auto retryCallback = [url, body, authRequired, callback](const matjson::Value& data) {
+        if (data.contains("error") && data["error"].asString().unwrapOrDefault() == "Unauthorized") {
+            getToken([url, body, authRequired, callback](const bool success) {
+                if (success) {
+                    sendPostRequest(url, body, authRequired, callback);
+                } else {
+                    matjson::Value ret;
+                    ret["error"] = "Failed to refresh token.";
+                    callback(ret);
+                }
+            });
+        } else {
+            callback(data);
+        }
+    };
+
+    downloadListener.bind([callback, retryCallback] (web::WebTask::Event* e) {
         if (const auto res = e->getValue()) {
             if (!res->ok()) {
                 matjson::Value ret;
                 matjson::Value defaultVal;
                 defaultVal["detail"] = "Malformed response";
                 ret["error"] = res->json().unwrapOr(defaultVal)["detail"];
-                callback(ret);
+                if (res->code() == 401) {
+                    matjson::Value unauthorized;
+                    unauthorized["error"] = "Unauthorized";
+                    retryCallback(unauthorized);
+                } else {
+                    callback(ret);
+                }
                 return;
             }
             const auto data = res->json().unwrapOr(matjson::Value{});
-            callback(data);
+            retryCallback(data);
         } else if (e->isCancelled()) {
             matjson::Value ret;
             ret["error"] = "Request was cancelled.";
@@ -31,22 +56,48 @@ void API::sendPostRequest(const std::string& url, const matjson::Value& body, co
 
     currentRequest = std::make_unique<web::WebRequest>();
     currentRequest->bodyJSON(body);
+    if (authRequired) {
+        if (token.empty()) token = Mod::get()->getSavedValue<std::string>("token", "");
+        currentRequest->header("Authorization", fmt::format("Bearer {}", token));
+    }
     downloadListener.setFilter(currentRequest->post(url));
 }
 
-void API::sendGetRequest(const std::string& url, const std::function<void(const matjson::Value&)>& callback) {
-    downloadListener.bind([callback] (web::WebTask::Event* e) {
+void API::sendGetRequest(const std::string& url, const bool authRequired, const std::function<void(const matjson::Value&)>& callback) {
+    auto retryCallback = [url, authRequired, callback](const matjson::Value& data) {
+        if (data.contains("error") && data["error"].asString().unwrapOrDefault() == "Unauthorized") {
+            getToken([url, authRequired, callback](const bool success) {
+                if (success) {
+                    sendGetRequest(url, authRequired, callback);
+                } else {
+                    matjson::Value ret;
+                    ret["error"] = "Failed to refresh token.";
+                    callback(ret);
+                }
+            });
+        } else {
+            callback(data);
+        }
+    };
+
+    downloadListener.bind([callback, retryCallback] (web::WebTask::Event* e) {
         if (const auto res = e->getValue()) {
             if (!res->ok()) {
                 matjson::Value ret;
                 matjson::Value defaultVal;
                 defaultVal["detail"] = "Malformed response";
                 ret["error"] = res->json().unwrapOr(defaultVal)["detail"];
-                callback(ret);
+                if (res->code() == 401) {
+                    matjson::Value unauthorized;
+                    unauthorized["error"] = "Unauthorized";
+                    retryCallback(unauthorized);
+                } else {
+                    callback(ret);
+                }
                 return;
             }
             const auto data = res->json().unwrapOrDefault();
-            callback(data);
+            retryCallback(data);
         } else if (e->isCancelled()) {
             matjson::Value ret;
             ret["error"] = "Request was cancelled.";
@@ -55,6 +106,10 @@ void API::sendGetRequest(const std::string& url, const std::function<void(const 
     });
 
     currentRequest = std::make_unique<web::WebRequest>();
+    if (authRequired) {
+        if (token.empty()) token = Mod::get()->getSavedValue<std::string>("token", "");
+        currentRequest->header("Authorization", fmt::format("Bearer {}", token));
+    }
     downloadListener.setFilter(currentRequest->get(url));
 }
 
@@ -76,6 +131,38 @@ matjson::Value API::getAuth() {
     return auth;
 }
 
+void API::getToken(const std::function<void(bool)>& callback) {
+    if (!GJAccountManager::sharedState()->m_accountID) {
+        showFailurePopup("You must be logged in to perform this action.");
+        callback(false);
+        return;
+    }
+
+    tokenListener.bind([callback] (web::WebTask::Event* e) {
+        if (const auto res = e->getValue()) {
+            if (!res->ok()) {
+                matjson::Value ret;
+                matjson::Value defaultVal;
+                defaultVal["detail"] = "Malformed response";
+                const auto error = res->json().unwrapOr(defaultVal)["detail"].asString().unwrapOrDefault();
+                showFailurePopup(fmt::format("Failed to fetch token: {}", error));
+                return;
+            }
+            const auto data = res->json().unwrapOr(matjson::Value{});
+            token = data["access_token"].asString().unwrapOrDefault();
+            Mod::get()->setSavedValue("token", token);
+            callback(true);
+        } else if (e->isCancelled()) {
+            showFailurePopup("Failed to fetch token: Request was cancelled.");
+        }
+    });
+
+    tokenRequest = std::make_unique<web::WebRequest>();
+    tokenRequest->bodyJSON(getAuth());
+    tokenListener.setFilter(tokenRequest->post(SERVER_URL "/token"));
+}
+
+
 void API::reassignModerator(const int accountID, const bool promote, const std::function<void(bool)>& callback) {
     matjson::Value body;
 
@@ -92,10 +179,9 @@ void API::reassignModerator(const int accountID, const bool promote, const std::
     if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
-        log::info("created load layer");
     }
 
-    sendPostRequest(SERVER_URL "/admin/reassign", body, [callback](const matjson::Value& data) {
+    sendPostRequest(SERVER_URL "/admin/reassign", body,true,  [callback](const matjson::Value& data) {
         if (loadLayer) loadLayer->finished();
 
         if (data.contains("error")) {
@@ -112,10 +198,9 @@ void API::getModerators(const std::function<void(bool)>& callback) {
     if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
-        log::info("created load layer");
     }
 
-    sendGetRequest(SERVER_URL "/mods", [callback](const matjson::Value& data) {
+    sendGetRequest(SERVER_URL "/mods", false, [callback](const matjson::Value& data) {
         if (loadLayer) loadLayer->finished();
 
         if (data.contains("error")) {
@@ -165,7 +250,7 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
         url << "&max_avg_feature=" << filters.maxAvgFeature;
     }
 
-    sendGetRequest(url.str(), [callback, filters](const matjson::Value& data) {
+    sendGetRequest(url.str(), true, [callback, filters](const matjson::Value& data) {
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to fetch sent levels: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);

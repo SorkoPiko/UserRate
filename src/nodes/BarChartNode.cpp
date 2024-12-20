@@ -1,11 +1,5 @@
 #include "BarChartNode.hpp"
 
-std::string floatToString(const float number, const int precision) {
-    std::stringstream stream;
-    stream << std::fixed << std::setprecision(precision) << number;
-    return stream.str();
-}
-
 BarChartNode* BarChartNode::create(const std::vector<BarChartData>& data, const CCSize& size, const float labelWidth, const float barHeight) {
     const auto ret = new BarChartNode();
     if (ret->init(data, size, labelWidth, barHeight)) {
@@ -34,6 +28,12 @@ bool BarChartNode::init(std::vector<BarChartData> data, const CCSize& size, cons
     }
 
     return true;
+}
+
+std::string floatToString(const float number, const int precision) {
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(precision) << number;
+    return stream.str();
 }
 
 BarChartBar BarChartNode::calculateBar(const BarChartData &barData, const int index, const int sum, const float chartSize, const int maxValue) {

@@ -4,7 +4,7 @@
 
 SearchOptionsPopup* SearchOptionsPopup::create(SentLevelFilters* filters) {
     const auto ret = new SearchOptionsPopup();
-    if (ret->initAnchored(300.f, 200.f, filters, "GJ_square01.png", {0.f, 0.f, 80.f, 80.f})) {
+    if (ret->initAnchored(300.f, 160.f, filters, "GJ_square01.png", {0.f, 0.f, 80.f, 80.f})) {
         ret->autorelease();
         return ret;
     }
@@ -12,7 +12,6 @@ SearchOptionsPopup* SearchOptionsPopup::create(SentLevelFilters* filters) {
     delete ret;
     return nullptr;
 }
-
 
 bool SearchOptionsPopup::setup(SentLevelFilters *filters) {
     this->filters = filters;
@@ -67,6 +66,18 @@ bool SearchOptionsPopup::setup(SentLevelFilters *filters) {
     featureOption->setPosition({width/4, height/4});
     m_mainLayer->addChild(featureOption);
 
+    typeOption = EnumOption::create(
+        "Type",
+        {SentLevelFilters::sortToString(TOP), SentLevelFilters::sortToString(RECENT), SentLevelFilters::sortToString(OLDEST)},
+        filters->sort,
+        [filters](int index) {
+            filters->sort = static_cast<SentLevelSearchType>(index);
+        }
+    );
+    typeOption->setID("type-option");
+    typeOption->setPosition({width/4*3, height/4});
+    m_mainLayer->addChild(typeOption);
+
     return true;
 }
 
@@ -82,6 +93,8 @@ void SearchOptionsPopup::onClose(CCObject *sender) {\
     featureOption->updateValues();
     filters->minAvgFeature = featureOption->lowValue.value_or(0);
     filters->maxAvgFeature = featureOption->highValue.value_or(4);
+
+    typeOption->updateValues();
 
     if (*filters != originalFilters) {
         Global::get()->clearLevelPages();

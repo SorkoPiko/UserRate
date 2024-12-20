@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from enum import Enum
+from enum import Enum, IntEnum
 
 class Staff(BaseModel):
     accountID: int
@@ -12,7 +12,7 @@ class Feature(Enum):
     LEGENDARY = 3
     MYTHIC = 4
 
-class Sort(Enum):
+class Sort(IntEnum):
     TOP = 0
     RECENT = 1
     OLDEST = 2
@@ -43,4 +43,3 @@ class Sent(BaseModel):
 class Reassign(BaseModel):
     promote: bool
     accountID: int
-    auth: Auth

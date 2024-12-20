@@ -1,16 +1,22 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from os import environ
 import hashlib, asyncio
+import jwt
+from datetime import datetime, timedelta, UTC
 
 from db import UserRateDB
-from models import suggestGJStars20, Sort, Reassign
+from models import suggestGJStars20, Sort, Reassign, Auth
 from utils import AccountChecker
 
 load_dotenv()
 db = UserRateDB(f"mongodb+srv://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@{environ.get('MONGO_ENDPOINT')}")
 checker = AccountChecker()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+SECRET_KEY = environ.get("SECRET_KEY")
 
 app = FastAPI(
     title="User Rate API",
@@ -18,6 +24,29 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/"
 )
+
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
+    to_encode = data.copy()
+    expire = datetime.now(UTC) + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
+def verify_token(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        account_id: int = payload.get("accountID")
+        role: str = payload.get("role")
+        if account_id is None or role is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        staff = db.find_staff_by_id(account_id)
+        if staff is None or (role == "admin" and not staff.admin) or (role == "moderator" and staff.admin):
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        return {"accountID": account_id, "role": role}
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 def censor(form_dict: dict) -> dict:
     if "gjp2" in form_dict:
@@ -35,6 +64,32 @@ def convert_fields_to_bool(form_dict: dict, fields: list) -> dict:
         if field in form_dict:
             form_dict[field] = bool(int(form_dict[field]))
     return form_dict
+
+@app.post("/token")
+async def login(auth: Auth):
+    if not auth.gjp2 or not auth.accountID:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    staff = db.find_staff_by_id(auth.accountID)
+    if staff is None:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    future = asyncio.Future()
+
+    async def callback(result: bool):
+        future.set_result(result)
+
+    checker.queue_check(auth.accountID, auth.gjp2, callback)
+
+    futureResult = await future
+
+    if not futureResult:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    role = "admin" if staff.admin else "moderator"
+    access_token = create_access_token(data={"accountID": auth.accountID, "role": role})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/suggest", response_class=HTMLResponse)
 async def suggest(request: Request):
     raw_form = await request.form()
@@ -81,54 +136,18 @@ async def get_sent_levels(
         page: int = 0,
         min_send_count: int = 0,
         max_send_count: int = None,
-        min_avg_stars: int = 0,
+        min_avg_stars: int = 1,
         max_avg_stars: int = 10,
         min_avg_feature: int = 0,
         max_avg_feature: int = 4,
-        accountID: int = 0,
-        gjp2: str = ""
+        token_data: dict = Depends(verify_token)
 ):
-    if accountID == 0 or not gjp2:
-        raise HTTPException(status_code=401, detail="You must provide authentication to view sent levels")
-
-    staff = db.find_staff_by_id(accountID)
-    if staff is None:
-        raise HTTPException(status_code=401, detail="You must be a moderator to view sent levels")
-
-    future = asyncio.Future()
-
-    async def callback(result: bool):
-        future.set_result(result)
-
-    checker.queue_check(accountID, gjp2, callback)
-
-    futureResult = await future
-
-    if not futureResult:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-
     return db.get_sent_levels(sort, page, min_send_count, max_send_count, min_avg_stars, max_avg_stars, min_avg_feature, max_avg_feature)
 
 @app.post("/admin/reassign")
-async def reassign_moderator(data: Reassign):
-    if data.auth.accountID == 0 or not data.auth.gjp2:
-        raise HTTPException(status_code=401, detail="You must provide authentication to view sent levels")
-
-    staff = db.find_staff_by_id(data.auth.accountID)
-    if staff is None or not staff.admin:
-        raise HTTPException(status_code=401, detail="You must be an admin to reassign moderators")
-
-    future = asyncio.Future()
-
-    async def callback(result: bool):
-        future.set_result(result)
-
-    checker.queue_check(data.auth.accountID, data.auth.gjp2, callback)
-
-    futureResult = await future
-
-    if not futureResult:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+async def reassign_moderator(data: Reassign, token_data: dict = Depends(verify_token)):
+    if token_data["role"] != "admin":
+        raise HTTPException(status_code=400, detail="You must be an admin to reassign moderators")
 
     if data.promote:
         db.promote_mod(data.accountID)
