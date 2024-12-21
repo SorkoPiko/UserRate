@@ -32,6 +32,9 @@ public:
     static void reassignModerator(int accountID, bool promote, const std::function<void(bool)>& callback);
     static void getModerators(const std::function<void(bool)>& callback);
     static void getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback);
+    static void clearLevelSends(int levelID, const std::function<void(bool)>& callback);
+    static void rateLevel(int levelID, int stars, int feature, const std::function<void(bool)>& callback);
+    static void checkRatedLevels(const std::vector<int>& levelIDs, const std::function<void(bool)>& callback);
 };
 
 

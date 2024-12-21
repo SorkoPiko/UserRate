@@ -1,6 +1,9 @@
 #include "AdminPage.hpp"
 
 #include "SearchOptionsPopup.hpp"
+#include "SentLevelCell.hpp"
+#include "../managers/API.hpp"
+#include "../managers/Global.hpp"
 
 AdminPage* AdminPage::create() {
     const auto ret = new AdminPage();
@@ -95,6 +98,49 @@ bool AdminPage::init() {
     optionsMenu->setLayout(ColumnLayout::create()->setAxisReverse(true)->setAxisAlignment(AxisAlignment::End));
     listLayer->addChildAtPosition(optionsMenu, Anchor::Left, ccp(-20, 50));
 
+    refreshMenu = CCMenu::create();
+    refreshMenu->setID("refresh-menu");
+    refreshMenu->setPosition(listLayer->getChildByID("bottom-right-corner")->getPosition());
+    listLayer->addChild(refreshMenu, 5);
+
+    refreshButton = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_updateBtn_001.png"),
+        this,
+        menu_selector(AdminPage::refresh)
+    );
+    refreshButton->setID("refresh-button");
+    refreshMenu->addChild(refreshButton);
+
+    pageMenu = CCMenu::create();
+    pageMenu->setID("page-menu");
+    pageMenu->setContentSize(listLayer->getContentSize());
+    listLayer->addChildAtPosition(pageMenu, Anchor::BottomLeft);
+
+    prevPageButton = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png"),
+        this,
+        menu_selector(AdminPage::onPrevPage)
+    );
+    prevPageButton->setID("prev-page-button");
+    prevPageButton->setPosition({-20.f, listLayer->getContentHeight() / 2});
+    prevPageButton->setVisible(false);
+    pageMenu->addChild(prevPageButton);
+
+    nextPageButton = CCMenuItemSpriteExtra::create(
+        [] {
+            const auto sprite = CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
+            sprite->setFlipX(true);
+            return sprite;
+        }(),
+        this,
+        menu_selector(AdminPage::onNextPage)
+    );
+    nextPageButton->setID("next-page-button");
+    nextPageButton->setPosition({listLayer->getContentWidth() + 20.f, listLayer->getContentHeight() / 2});
+    pageMenu->addChild(nextPageButton);
+
+    loadLevelPage();
+
     addSideArt(mainLayer, SideArt::Bottom);
 
     setKeypadEnabled(true);
@@ -105,13 +151,59 @@ bool AdminPage::init() {
 }
 
 void AdminPage::openFilters(CCObject*) {
-    const auto filtersPopup = SearchOptionsPopup::create(&filters);
+    const auto filtersPopup = SearchOptionsPopup::create(&filters, this);
     filtersPopup->setZOrder(100);
     filtersPopup->show();
 }
 
-void AdminPage::loadLevelPage() {
+void AdminPage::refresh(CCObject*) {
+    filters.page = 0;
+    Global::get()->clearLevelPages();
+    loadLevelPage();
+}
 
+void AdminPage::loadLevelPage() {
+    if (levelList) levelList->removeFromParentAndCleanup(true);
+
+    if (filters.page == 0) prevPageButton->setVisible(false);
+    else prevPageButton->setVisible(true);
+
+    if (const auto levels = Global::get()->getLevelPage(filters.page); levels.has_value()) {
+        if (levels.value().empty()) {
+            nextPageButton->setVisible(false);
+            return;
+        }
+        nextPageButton->setVisible(true);
+
+        const auto items = CCArray::create();
+        for (const auto& level : levels.value()) {
+            items->addObject(
+                SentLevelCell::create(level, listLayer->getContentWidth(), this)
+            );
+        }
+
+        levelList = ListView::create(items, SentLevelCell::HEIGHT, listLayer->getContentWidth(), listLayer->getContentHeight());
+        levelList->setID("level-list");
+        listLayer->addChild(levelList, -1);
+    } else {
+        loadUI();
+
+        API::getSentLevels(filters, [this](const bool success) {
+            finishLoadUI();
+            if (success) loadLevelPage();
+        });
+    }
+}
+
+void AdminPage::onPrevPage(CCObject*) {
+    if (filters.page == 0) return;
+    filters.page--;
+    loadLevelPage();
+}
+
+void AdminPage::onNextPage(CCObject*) {
+    filters.page++;
+    loadLevelPage();
 }
 
 void AdminPage::onBack(CCObject*) {
@@ -122,19 +214,36 @@ void AdminPage::keyBackClicked() {
     CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
 }
 
+void AdminPage::loadUI() {
+    loadingCircle = LoadingCircle::create();
+    loadingCircle->setParentLayer(this);
+    loadingCircle->show();
+
+    pageMenu->setVisible(false);
+    optionsMenu->setVisible(false);
+    refreshMenu->setVisible(false);
+}
+
+void AdminPage::finishLoadUI() const {
+    loadingCircle->removeFromParentAndCleanup(true);
+
+    pageMenu->setVisible(true);
+    optionsMenu->setVisible(true);
+    refreshMenu->setVisible(true);
+}
+
 // yes this is blatantly copied from Creation Rotation
 // https://github.com/TechStudent10/CreationRotation/blob/21cebb09b53752a90d7b7046b498376fb53a626d/src/layers/Lobby.cpp#L391
 void AdminPage::createBorders() const {
-    const auto winSize = CCDirector::sharedDirector()->getWinSize();
-    const float width = winSize.width / 1.5f;
-    constexpr float height = 220.f;
+    const float width = listLayer->getContentWidth();
+    const float height = listLayer->getContentHeight();
     
     constexpr int SIDE_OFFSET = 7;
     constexpr int TOP_BOTTOM_OFFSET = 8;
 
     const auto topSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     topSide->setScaleY(
-        listLayer->getContentWidth() / topSide->getContentHeight()
+        width / topSide->getContentHeight()
     );
     topSide->setRotation(90.f);
     topSide->setPosition({
@@ -146,7 +255,7 @@ void AdminPage::createBorders() const {
 
     const auto bottomSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     bottomSide->setScaleY(
-        listLayer->getContentWidth() / bottomSide->getContentHeight()
+        width / bottomSide->getContentHeight()
     );
     bottomSide->setRotation(-90.f);
     bottomSide->setPosition({
@@ -158,7 +267,7 @@ void AdminPage::createBorders() const {
 
     const auto leftSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     leftSide->setScaleY(
-        (listLayer->getContentHeight() + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
+        (height + TOP_BOTTOM_OFFSET) / leftSide->getContentHeight()
     );
     leftSide->setPosition({
         -SIDE_OFFSET,
@@ -168,7 +277,7 @@ void AdminPage::createBorders() const {
 
     const auto rightSide = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
     rightSide->setScaleY(
-        (listLayer->getContentHeight() + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
+        (height + TOP_BOTTOM_OFFSET) / rightSide->getContentHeight()
     );
     rightSide->setRotation(180.f);
     rightSide->setPosition({

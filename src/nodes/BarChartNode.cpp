@@ -36,23 +36,29 @@ std::string floatToString(const float number, const int precision) {
     return stream.str();
 }
 
+void scaleLabelToWidth(CCLabelBMFont *&label, const float maxWidth) {
+    const float scale = 0.6f * label->getContentSize().width > maxWidth ? maxWidth / label->getContentSize().width : 0.6f;
+    label->setScale(scale);
+}
+
 BarChartBar BarChartNode::calculateBar(const BarChartData &barData, const int index, const int sum, const float chartSize, const int maxValue) {
     const float percent = static_cast<float>(barData.value) / static_cast<float>(sum);
     float height = (chartSize - labelWidth) * (static_cast<float>(barData.value) / static_cast<float>(sum)) * (static_cast<float>(sum) / static_cast<float>(maxValue));
     const std::string percentage = std::to_string(barData.value) + " (" + floatToString(percent * 100, 2) + "%)";
-    const auto labelLabel = CCLabelBMFont::create(barData.label.c_str(), "chatFont.fnt");
-    labelLabel->setScale(0.6f * labelLabel->getContentSize().width > labelWidth ? labelWidth / labelLabel->getContentSize().width : 0.6f);
+    // create labels
+    auto labelLabel = CCLabelBMFont::create(barData.label.c_str(), "chatFont.fnt");
+    scaleLabelToWidth(labelLabel, labelWidth);
     labelLabel->setAnchorPoint({0.0f, 0.5f});
     const float labelPositionAdjustement = labelLabel->getContentWidth() * (CCDirector::get()->getLoadedTextureQuality() == kTextureQualityHigh ? 0.0f : 0.05f);
-    labelLabel->setPosition({0.0f - labelPositionAdjustement, getContentHeight() - barHeight * index - barHeight / 2});
+    labelLabel->setPosition({0.0f - labelPositionAdjustement, this->getContentHeight() - barHeight * index - barHeight / 2});
     if (labelLabel->getScaledContentHeight() > barHeight) labelLabel->setScale(labelLabel->getScale() * (barHeight / labelLabel->getScaledContentHeight()));
-    addChild(labelLabel);
-    const auto percentageLabel = CCLabelBMFont::create(percentage.c_str(), "chatFont.fnt");
-    labelLabel->setScale(0.6f * percentageLabel->getContentSize().width > labelWidth * 1.5f ? labelWidth * 1.5f / percentageLabel->getContentSize().width : 0.6f);
+    this->addChild(labelLabel);
+    auto percentageLabel = CCLabelBMFont::create(percentage.c_str(), "chatFont.fnt");
+    scaleLabelToWidth(percentageLabel, labelWidth * 1.5f);
     percentageLabel->setAnchorPoint({0.0f, 0.5f});
-    percentageLabel->setPosition({labelWidth + height + 2.0f, getContentHeight() - barHeight * index - barHeight / 2});
+    percentageLabel->setPosition({labelWidth + height + 2.0f, this->getContentHeight() - barHeight * index - barHeight / 2});
     if (percentageLabel->getScaledContentHeight() > barHeight) percentageLabel->setScale(percentageLabel->getScale() * (barHeight / percentageLabel->getScaledContentHeight()));
-    addChild(percentageLabel);
+    this->addChild(percentageLabel);
     return {barData.color, height};
 }
 

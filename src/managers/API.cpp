@@ -3,6 +3,7 @@
 #include "Global.hpp"
 #include "../delegates/GLMDelegate.hpp"
 #include "../types/SentLevel.hpp"
+#include "../types/RatedLevel.hpp"
 
 std::string API::token;
 EventListener<web::WebTask> API::downloadListener;
@@ -166,15 +167,8 @@ void API::getToken(const std::function<void(bool)>& callback) {
 void API::reassignModerator(const int accountID, const bool promote, const std::function<void(bool)>& callback) {
     matjson::Value body;
 
-    if (!GJAccountManager::sharedState()->m_accountID) {
-        showFailurePopup("You must be logged in to perform this action.");
-        callback(false);
-        return;
-    }
-
     body["promote"] = promote;
     body["accountID"] = accountID;
-    body["auth"] = getAuth();
 
     if (!isLoading) {
         loadLayer = LoadLayer::create();
@@ -218,18 +212,9 @@ void API::getModerators(const std::function<void(bool)>& callback) {
 }
 
 void API::getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback) {
-    if (!GJAccountManager::sharedState()->m_accountID) {
-        showFailurePopup("You must be logged in to perform this action.");
-        callback(false);
-        return;
-    }
-
-    const auto auth = getAuth();
     std::ostringstream url;
     url << SERVER_URL << "/mod/sent?sort=" << filters.sort
-        << "&page=" << filters.page
-        << "&accountID=" << auth["accountID"].asInt().unwrapOrDefault()
-        << "&gjp2=" << auth["gjp2"].asString().unwrapOrDefault();
+        << "&page=" << filters.page;
 
     if (filters.minSends > 0) {
         url << "&min_send_count=" << filters.minSends;
@@ -237,7 +222,7 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
     if (filters.maxSends.has_value()) {
         url << "&max_send_count=" << filters.maxSends.value();
     }
-    if (filters.minAvgStars > 0) {
+    if (filters.minAvgStars > 1) {
         url << "&min_avg_stars=" << filters.minAvgStars;
     }
     if (filters.maxAvgStars < 10) {
@@ -271,8 +256,8 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
             }
 
             const auto glm = GameLevelManager::get();
-            auto delegate = GLMDelegate();
-            delegate.setCallback([callback, global](CCArray* delegateLevels, const char* error, const int error2) {
+            const auto delegate = new GLMDelegate();
+            delegate->setCallback([callback, global, delegate](CCArray* delegateLevels, const char* error, const int error2) {
                 if (delegateLevels) {
                     for (GJGameLevel* level : CCArrayExt<GJGameLevel*>(delegateLevels)) {
                         global->addLevel(level->m_levelID, level->m_levelName, level->isPlatformer());
@@ -282,10 +267,85 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
                     showFailurePopup(fmt::format("Failed to fetch sent levels: {} ({})", error, error2));
                     callback(false);
                 }
+                delete delegate;
             });
 
-            glm->m_levelManagerDelegate = &delegate;
+            glm->m_levelManagerDelegate = delegate;
             glm->getOnlineLevels(GJSearchObject::create(SearchType::Type26, fmt::format("{}", fmt::join(remaining, ","))));
+        }
+    });
+}
+
+void API::clearLevelSends(const int levelID, const std::function<void(bool)>& callback) {
+    matjson::Value body;
+
+    body["levelID"] = levelID;
+
+    if (isLoading) {
+        loadLayer = LoadLayer::create();
+        loadLayer->show();
+    }
+
+    sendPostRequest(SERVER_URL "/admin/clear", body, true, [callback](const matjson::Value& data) {
+        if (loadLayer) loadLayer->finished();
+
+        if (data.contains("error")) {
+            showFailurePopup(fmt::format("Failed to clear level sends: {}", data["error"].asString().unwrapOrDefault()));
+            callback(false);
+        } else {
+            callback(true);
+        }
+    });
+}
+
+void API::rateLevel(const int levelID, const int stars, const int feature, const std::function<void(bool)>& callback) {
+    matjson::Value body;
+
+    body["levelID"] = levelID;
+    body["stars"] = stars;
+    body["feature"] = feature;
+
+    if (isLoading) {
+        loadLayer = LoadLayer::create();
+        loadLayer->show();
+    }
+
+    sendPostRequest(SERVER_URL "/mod/rate", body, true, [callback](const matjson::Value& data) {
+        if (loadLayer) loadLayer->finished();
+
+        if (data.contains("error")) {
+            showFailurePopup(fmt::format("Failed to rate level: {}", data["error"].asString().unwrapOrDefault()));
+            callback(false);
+        } else {
+            callback(true);
+        }
+    });
+}
+
+void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function<void(bool)>& callback) {
+    std::ostringstream url;
+    url << SERVER_URL << "/rated?levelIDs=" << fmt::format("{}", fmt::join(levelIDs, ","));
+
+    sendGetRequest(url.str(), true, [callback, levelIDs](const matjson::Value& data) {
+        if (data.contains("error")) {
+            showFailurePopup(fmt::format("Failed to check rated levels: {}", data["error"].asString().unwrapOrDefault()));
+            callback({});
+        } else {
+            const auto levels = data["levels"].as<std::vector<RatedLevel>>().unwrapOrDefault();
+            const auto global = Global::get();
+            std::vector<int> ratedIDs;
+
+            for (const auto& [id, stars, feature] : levels) {
+                ratedIDs.push_back(id);
+                global->setLevelRating(id, std::make_optional(std::make_pair(stars, feature)));
+            }
+
+            std::vector<int> missingIDs;
+            std::ranges::set_difference(levelIDs, ratedIDs, std::back_inserter(missingIDs));
+
+            for (const int id : missingIDs) global->setLevelRating(id, std::nullopt);
+
+            callback(true);
         }
     });
 }

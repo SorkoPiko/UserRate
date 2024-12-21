@@ -8,8 +8,8 @@ void Global::setLevelPage(const int page, const std::vector<SentLevel> &levels) 
     levelPages[page] = levels;
 }
 
-std::vector<SentLevel> Global::getLevelPage(const int page) const {
-    if (levelPages.size() <= page) return {};
+std::optional<std::vector<SentLevel>> Global::getLevelPage(const int page) const {
+    if (levelPages.size() <= page) return std::nullopt;
     return levelPages[page];
 }
 
@@ -22,4 +22,9 @@ std::vector<int> Global::allCached(const std::vector<int>& levelIDs) const {
     std::vector<int> notCached;
     for (const int id : levelIDs) if (!levelCache.contains(id)) notCached.push_back(id);
     return notCached;
+}
+
+std::optional<std::pair<int, int>> Global::getLevelRating(const int levelID) const {
+    if (const auto it = levelRatingCache.find(levelID); it != levelRatingCache.end()) return it->second;
+    return std::nullopt;
 }

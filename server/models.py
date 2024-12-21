@@ -43,3 +43,11 @@ class Sent(BaseModel):
 class Reassign(BaseModel):
     promote: bool
     accountID: int
+
+class Clear(BaseModel):
+    levelID: int
+
+class Rate(BaseModel):
+    levelID: int
+    stars: int
+    feature: Feature

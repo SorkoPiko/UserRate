@@ -1,14 +1,14 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, Query
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from os import environ
-import hashlib, asyncio
-import jwt
+import hashlib, asyncio, jwt
 from datetime import datetime, timedelta, UTC
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
 from db import UserRateDB
-from models import suggestGJStars20, Sort, Reassign, Auth
+from models import suggestGJStars20, Sort, Reassign, Auth, Clear, Rate
 from utils import AccountChecker
 
 load_dotenv()
@@ -25,7 +25,7 @@ app = FastAPI(
     docs_url="/"
 )
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=6)):
     to_encode = data.copy()
     expire = datetime.now(UTC) + expires_delta
     to_encode.update({"exp": expire})
@@ -130,6 +130,14 @@ async def demon(request: Request):
     form_dict: dict = {key: value for key, value in raw_form.items()}
     return {"message": "Demon"}
 
+@app.get("/rated")
+async def check_rated_levels(levelIDs: str):
+    try:
+        id_list = [int(id) for id in levelIDs.split(',')]
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid level IDs")
+    return db.check_rated_levels(id_list)
+
 @app.get("/mod/sent")
 async def get_sent_levels(
         sort: Sort = Sort.TOP,
@@ -144,6 +152,25 @@ async def get_sent_levels(
 ):
     return db.get_sent_levels(sort, page, min_send_count, max_send_count, min_avg_stars, max_avg_stars, min_avg_feature, max_avg_feature)
 
+@app.post("/mod/rate")
+async def rate_level(data: Rate, token_data: dict = Depends(verify_token)):
+    if data.stars < 1 or data.stars > 10:
+        raise HTTPException(status_code=400, detail="Stars must be between 1 and 10")
+
+    db.rate(data.levelID, data.stars, data.feature.value)
+
+    webhook = DiscordWebhook(url=environ.get("WEBHOOK_URL"), rate_limit_retry=True)
+    embed = DiscordEmbed(
+        title="Level Rated",
+        description=f"Level ID: {data.levelID}\nStars: {data.stars}\nFeature: {data.feature}",
+        color=0x00C04B
+    )
+    webhook.add_embed(embed)
+
+    webhook.execute()
+
+    return {"message": "Success"}
+
 @app.post("/admin/reassign")
 async def reassign_moderator(data: Reassign, token_data: dict = Depends(verify_token)):
     if token_data["role"] != "admin":
@@ -154,6 +181,14 @@ async def reassign_moderator(data: Reassign, token_data: dict = Depends(verify_t
     else:
         db.demote_mod(data.accountID)
 
+    return {"message": "Success"}
+
+@app.post("/admin/clear")
+async def clear_sends(data: Clear, token_data: dict = Depends(verify_token)):
+    if token_data["role"] != "admin":
+        raise HTTPException(status_code=400, detail="You must be an admin to clear sends")
+
+    db.clear_sends_for_level(data.levelID)
     return {"message": "Success"}
 
 @app.get("/mods")

@@ -17,22 +17,33 @@ class AdminPage final : public CCLayer {
     CCLayerColor* listBG = nullptr;
     CCLabelBMFont* title = nullptr;
     CCMenu* optionsMenu = nullptr;
+    CCMenu* refreshMenu = nullptr;
+    CCMenu* pageMenu = nullptr;
+    CCMenuItemSpriteExtra* refreshButton = nullptr;
+    CCMenuItemSpriteExtra* prevPageButton = nullptr;
+    CCMenuItemSpriteExtra* nextPageButton = nullptr;
+    LoadingCircle* loadingCircle = nullptr;
 
     SentLevelFilters filters{};
 
     bool init() override;
 
     void openFilters(CCObject*);
-
-    void loadLevelPage();
-
+    void refresh(CCObject*);
+    void onPrevPage(CCObject*);
+    void onNextPage(CCObject*);
     void onBack(CCObject*);
     void keyBackClicked() override;
+
+    void loadUI();
+    void finishLoadUI() const;
 
     void createBorders() const;
 
 public:
     static AdminPage* create();
+
+    void loadLevelPage();
 };
 
 #endif

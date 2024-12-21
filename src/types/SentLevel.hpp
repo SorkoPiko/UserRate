@@ -10,8 +10,8 @@ struct SentLevel {
     std::unordered_map<int, int> ratingSends;
 
     int totalSends{};
-    int averageFeature{};
-    int averageRating{};
+    float averageFeature{};
+    float averageRating{};
 };
 
 template<>
@@ -23,28 +23,32 @@ struct matjson::Serialize<SentLevel> {
             level.id = value["levelID"].asInt().unwrap();
         }
 
-        int featureSends = 0;
+        float featureSends = 0;
         if (value["feature_spread"].isObject()) {
-            int keys = 0;
+            float vals = 0;
             for (const auto& [key, val] : value["feature_spread"]) {
-                keys++;
+                const int keyNum = std::stoi(key);
                 const int num = val.asInt().unwrap();
+                level.featureSends[keyNum] = num;
+                if (num == 0) continue;
+                vals += keyNum * num;
                 featureSends += num;
-                level.featureSends[std::stoi(key)] = num;
             }
-            level.averageFeature = featureSends / keys;
+            level.averageFeature = vals / featureSends;
         }
 
-        int ratingSends = 0;
-        if (value["rating_spread"].isObject()) {
-            int keys = 0;
+        float ratingSends = 0;
+        if (value["stars_spread"].isObject()) {
+            float vals = 0;
             for (const auto& [key, val] : value["stars_spread"]) {
-                keys++;
+                const int keyNum = std::stoi(key);
                 const int num = val.asInt().unwrap();
+                level.ratingSends[keyNum] = num;
+                if (num == 0) continue;
+                vals += keyNum * num;
                 ratingSends += num;
-                level.ratingSends[std::stoi(key)] = num;
             }
-            level.averageRating = ratingSends / keys;
+            level.averageRating = vals / ratingSends;
         }
 
         if (featureSends != ratingSends) {

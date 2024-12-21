@@ -61,7 +61,7 @@ class UserRateDB:
             upsert=True
         )
 
-    def get_level_spreads(self, level_id: int):
+    def get_level_spreads(self, level_id: int) -> dict:
         collection = self.get_collection("data", "sends")
 
         pipeline = [
@@ -110,14 +110,14 @@ class UserRateDB:
             self,
             sort: Sort,
             page: int = 0,
-            page_size: int = 50,
             min_send_count: int = 0,
             max_send_count: int = None,
             min_avg_stars: int = 0,
             max_avg_stars: int = 10,
             min_avg_feature: int = 0,
-            max_avg_feature: int = 4
-    ):
+            max_avg_feature: int = 4,
+            page_size: int = 50
+    ) -> dict:
         collection = self.get_collection("data", "sends")
 
         if sort == Sort.RECENT:
@@ -161,7 +161,44 @@ class UserRateDB:
             result.update(self.get_level_spreads(result["levelID"]))
             result.pop("sendCount")
             result.pop("mostRecentSend")
+            result.pop("avgStars")
+            result.pop("avgFeature")
 
         return {
             "levels": results
         }
+
+    def clear_sends_for_level(self, level_id: int):
+        collection = self.get_collection("data", "sends")
+        collection.delete_many({"levelID": level_id})
+
+    def rate(self, level_id: int, stars: int, feature: int):
+        rates_collection = self.get_collection("data", "rates")
+
+        # Insert into the rates collection
+        rates_collection.insert_one({
+            "_id": level_id,
+            "stars": stars,
+            "feature": feature,
+            "timestamp": datetime.now(UTC)
+        })
+
+        # Clear sends for the specified levelID
+        self.clear_sends_for_level(level_id)
+
+    def rated_level(self, level_id: int) -> dict:
+        rates_collection = self.get_collection("data", "rates")
+        rating: dict = rates_collection.find_one({"_id": level_id}, {"_id": 1, "stars": 1, "feature": 1})
+        if rating is not None: rating["levelID"] = rating.pop("_id")
+        return rating
+
+    def check_rated_levels(self, level_ids: list[int]) -> dict:
+        rates_collection = self.get_collection("data", "rates")
+        ratings = rates_collection.find({"_id": {"$in": level_ids}}, {"_id": 1, "stars": 1, "feature": 1})
+
+        rated_levels = []
+        for rating in ratings:
+            rating["levelID"] = rating.pop("_id")
+            rated_levels.append(rating)
+
+        return {"levels": rated_levels}

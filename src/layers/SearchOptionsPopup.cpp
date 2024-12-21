@@ -2,9 +2,9 @@
 
 #include "../managers/Global.hpp"
 
-SearchOptionsPopup* SearchOptionsPopup::create(SentLevelFilters* filters) {
+SearchOptionsPopup* SearchOptionsPopup::create(SentLevelFilters* filters, AdminPage* adminPage) {
     const auto ret = new SearchOptionsPopup();
-    if (ret->initAnchored(300.f, 160.f, filters, "GJ_square01.png", {0.f, 0.f, 80.f, 80.f})) {
+    if (ret->initAnchored(300.f, 160.f, filters, adminPage, "GJ_square01.png", {0.f, 0.f, 80.f, 80.f})) {
         ret->autorelease();
         return ret;
     }
@@ -13,8 +13,9 @@ SearchOptionsPopup* SearchOptionsPopup::create(SentLevelFilters* filters) {
     return nullptr;
 }
 
-bool SearchOptionsPopup::setup(SentLevelFilters *filters) {
+bool SearchOptionsPopup::setup(SentLevelFilters* filters, AdminPage* adminPage) {
     this->filters = filters;
+    this->adminPage = adminPage;
     originalFilters = *filters;
 
     const auto width = m_mainLayer->getContentWidth();
@@ -25,10 +26,10 @@ bool SearchOptionsPopup::setup(SentLevelFilters *filters) {
     m_buttonMenu->setContentSize(m_mainLayer->getContentSize());
     m_mainLayer->addChildAtPosition(m_buttonMenu, Anchor::BottomLeft);
 
-    const auto title = CCLabelBMFont::create("Options", "bigFont.fnt");
-    m_mainLayer->addChild(title, 1);
-    title->setPosition({m_mainLayer->getContentWidth()/2.f, m_mainLayer->getContentHeight()-20.f});
+    title = CCLabelBMFont::create("Options", "bigFont.fnt");
     title->setID("title");
+    title->setPosition({width/2.f, height + 10.f});
+    m_mainLayer->addChild(title, 1);
 
     sendsOption = RangeOption::create(
         "Sends",
@@ -100,5 +101,7 @@ void SearchOptionsPopup::onClose(CCObject *sender) {\
         Global::get()->clearLevelPages();
         filters->page = 0;
     }
+
+    adminPage->loadLevelPage();
     Popup::onClose(sender);
 }

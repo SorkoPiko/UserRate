@@ -17,7 +17,10 @@ class Global {
     std::vector<std::vector<SentLevel>> levelPages{};
     std::map<int, std::pair<std::string, bool>> levelCache{}; // levelID, level name, platformer
 
+    std::map<int, std::optional<std::pair<int, int>>> levelRatingCache{}; // levelID, rating, feature
+
     bool customRating = false;
+    bool modRating = false;
 
     Global() = default;
 
@@ -45,14 +48,21 @@ public:
 
     void clearLevelPages() {levelPages.clear();}
     void setLevelPage(int page, const std::vector<SentLevel>& levels);
-    [[nodiscard]] std::vector<SentLevel> getLevelPage(int page) const;
+    [[nodiscard]] std::optional<std::vector<SentLevel>> getLevelPage(int page) const;
 
     void addLevel(const int levelID, const std::string& name, const bool isPlatformer) {levelCache[levelID] = {name, isPlatformer};}
     [[nodiscard]] std::pair<std::string, bool> getLevel(int levelID) const;
-    std::vector<int> allCached(const std::vector<int>& levelIDs) const;
+    [[nodiscard]] std::vector<int> allCached(const std::vector<int>& levelIDs) const;
+
+    void setLevelRating(const int levelID, const std::optional<std::pair<int, int>>& value) {levelRatingCache[levelID] = value;}
+    [[nodiscard]] bool levelRatingExists(const int levelID) const {return levelRatingCache.contains(levelID);}
+    [[nodiscard]] std::optional<std::pair<int, int>> getLevelRating(int levelID) const;
 
     [[nodiscard]] bool isCustomRating() const {return customRating;}
     void setCustomRating(const bool value) {customRating = value;}
+
+    [[nodiscard]] bool isModRating() const {return modRating;}
+    void setModRating(const bool value) {modRating = value;}
 };
 
 #endif
