@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer
@@ -17,11 +19,19 @@ checker = AccountChecker()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 SECRET_KEY = environ.get("SECRET_KEY")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    checker.start(asyncio.get_running_loop())
+    try: yield
+    finally: checker.stop()
+
 app = FastAPI(
     title="User Rate API",
     description="API for the Geode mod User Rate",
     version="1.0.0",
-    docs_url="/"
+    docs_url="/",
+    lifespan=lifespan
 )
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=6)):
