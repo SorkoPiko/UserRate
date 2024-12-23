@@ -1,8 +1,6 @@
 #ifndef GLOBAL_HPP
 #define GLOBAL_HPP
 
-#define SERVER_URL "http://127.0.0.1:8000"
-
 #include <mutex>
 
 #include "../types/RatedLevel.hpp"

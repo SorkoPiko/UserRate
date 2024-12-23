@@ -1,6 +1,8 @@
 #ifndef API_HPP
 #define API_HPP
 
+#define SERVER_URL "https://userrate.sorkopiko.com"
+
 #include <Geode/utils/web.hpp>
 
 #include "../layers/LoadLayer.hpp"
