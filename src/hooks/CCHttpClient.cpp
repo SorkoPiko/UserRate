@@ -1,6 +1,7 @@
 #include <Geode/modify/CCHttpClient.hpp>
 
 #include "../managers/Global.hpp"
+#include "../managers/API.hpp"
 
 using namespace geode::prelude;
 

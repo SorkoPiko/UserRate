@@ -1,6 +1,7 @@
 #include <Geode/utils/web.hpp>
 
 #include "../managers/Global.hpp"
+#include "../managers/API.hpp"
 
 using namespace geode::prelude;
 
