@@ -2,7 +2,7 @@
 UserRate allows <cy>**anyone**</c> to send a level to a moderator! A moderator can rate the level sent by <cy>**you**</c>, making a much more inclusive rating system.
 
 ## <cg>Commission</c>
-This mod is a <cr>commission</c> for <cb>forestg10</c>, made by <cg>SorkoPiko</c>. If you want a <cr>custom mod</c> made for <cb>you</c>, <cg>contact me</c> on [**Fiverr**](https://www.fiverr.com/sorkopiko/make-a-geometry-dash-mod-for-you).
+This mod is a <cy>commission</c> for <cb>forestg10</c>, made by <cg>SorkoPiko</c>. If you want a <cr>custom mod</c> made <cb>just for you</c>, <cg>contact me</c> on [**Fiverr**](https://www.fiverr.com/sorkopiko/make-a-geometry-dash-mod-for-you).
 
 ## Usage
 To send a level to a moderator, simply click the <cy>**"Send Level"**</c> button (blue button with a star) in the <cy>**left menu**</c> (where the copy button is) on the level info page (the one with the play button).
