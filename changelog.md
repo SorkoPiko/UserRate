@@ -1,4 +1,6 @@
-# Template Changelog
+# UserRate Changelog
 
-## 1.0.0
-* Edit this file to change your mod's changelog.
+## 1.0.0 - Initial Release
+* Added admin page with level searching, filters and graphs.
+* Added level rating system.
+* Added demon rating system.

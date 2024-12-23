@@ -5,7 +5,9 @@
 
 #include <mutex>
 
+#include "../types/RatedLevel.hpp"
 #include "../types/SentLevel.hpp"
+#include "../types/SentLevelFilters.hpp"
 
 class Global {
     static Global* instance;
@@ -18,6 +20,9 @@ class Global {
     std::map<int, std::pair<std::string, bool>> levelCache{}; // levelID, level name, platformer
 
     std::map<int, std::optional<std::pair<int, int>>> levelRatingCache{}; // levelID, rating, feature
+    std::map<int, DemonDifficulty> levelDemonRatingCache{}; // levelID, demon rating
+
+    SentLevelFilters filters{};
 
     bool customRating = false;
     bool modRating = false;
@@ -57,6 +62,12 @@ public:
     void setLevelRating(const int levelID, const std::optional<std::pair<int, int>>& value) {levelRatingCache[levelID] = value;}
     [[nodiscard]] bool levelRatingExists(const int levelID) const {return levelRatingCache.contains(levelID);}
     [[nodiscard]] std::optional<std::pair<int, int>> getLevelRating(int levelID) const;
+
+    void setDemonRating(const int levelID, const DemonDifficulty value) {levelDemonRatingCache[levelID] = value;}
+    [[nodiscard]] DemonDifficulty getDemonRating(int levelID) const;
+
+    [[nodiscard]] SentLevelFilters getFilters() const {return filters;}
+    void setFilters(const SentLevelFilters& value) {filters = value;}
 
     [[nodiscard]] bool isCustomRating() const {return customRating;}
     void setCustomRating(const bool value) {customRating = value;}

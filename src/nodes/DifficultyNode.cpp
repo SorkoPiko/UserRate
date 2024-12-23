@@ -51,3 +51,14 @@ int DifficultyNode::getDifficultyForStars(const int stars) {
         default: return 0;
     }
 }
+
+int DifficultyNode::getDifficultyForDemon(const DemonDifficulty demon) {
+    switch (demon) {
+        case EASY: return 7;
+        case MEDIUM: return 8;
+        case HARD: return 6;
+        case INSANE: return 9;
+        case EXTREME: return 10;
+        default: return 0;
+    }
+}

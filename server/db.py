@@ -6,7 +6,8 @@ from pymongo.errors import DuplicateKeyError
 from pymongo import DESCENDING, ASCENDING
 from datetime import datetime, UTC
 
-from models import Staff, Sort
+from models import Staff, Sort, Demon
+
 
 class UserRateDB:
     def __init__(self, connection_string: str):
@@ -14,8 +15,11 @@ class UserRateDB:
         self.create_indexes()
 
     def create_indexes(self):
-        collection = self.get_collection("data", "sends")
-        collection.create_index([("ip", ASCENDING), ("levelID", ASCENDING)], unique=True)
+        sends = self.get_collection("data", "sends")
+        sends.create_index([("ip", ASCENDING), ("levelID", ASCENDING)], unique=True)
+
+        demon = self.get_collection("data", "demon")
+        demon.create_index([("ip", ASCENDING), ("levelID", ASCENDING)], unique=True)
 
 
     def get_database(self, db_name: str) -> Database:
@@ -186,6 +190,11 @@ class UserRateDB:
         # Clear sends for the specified levelID
         self.clear_sends_for_level(level_id)
 
+    def derate(self, level_id: int):
+        rates_collection = self.get_collection("data", "rates")
+        rates_collection.delete_one({"_id": level_id})
+        self.clear_demon_for_level(level_id)
+
     def rated_level(self, level_id: int) -> dict:
         rates_collection = self.get_collection("data", "rates")
         rating: dict = rates_collection.find_one({"_id": level_id}, {"_id": 1, "stars": 1, "feature": 1})
@@ -197,8 +206,51 @@ class UserRateDB:
         ratings = rates_collection.find({"_id": {"$in": level_ids}}, {"_id": 1, "stars": 1, "feature": 1})
 
         rated_levels = []
+        demon_level_ids = []
+
         for rating in ratings:
             rating["levelID"] = rating.pop("_id")
+            if rating["stars"] == 10:
+                demon_level_ids.append(rating["levelID"])
             rated_levels.append(rating)
 
+        if demon_level_ids:
+            demon_difficulties = self.check_demon_difficulty(demon_level_ids)
+            demon_difficulty_map = {demon["levelID"]: demon["avgRating"] for demon in demon_difficulties["levels"]}
+
+            for level in rated_levels:
+                if level["levelID"] in demon_difficulty_map:
+                    level["avgDemonRating"] = demon_difficulty_map[level["levelID"]]
+
         return {"levels": rated_levels}
+
+    def demon(self, data: dict):
+        collection = self.get_collection("data", "demon")
+        data["timestamp"] = datetime.now(UTC)
+        collection.update_one(
+            {"ip": data["ip"], "levelID": data["levelID"]},
+            {"$set": data},
+            upsert=True
+        )
+
+    def clear_demon_for_level(self, level_id: int):
+        collection = self.get_collection("data", "demon")
+        collection.delete_many({"levelID": level_id})
+
+    def check_demon_difficulty(self, level_ids: list[int]) -> dict:
+        demon_collection = self.get_collection("data", "demon")
+
+        pipeline = [
+            {"$match": {"levelID": {"$in": level_ids}}},
+            {"$group": {
+                "_id": "$levelID",
+                "avgRating": {"$avg": "$rating"}
+            }}
+        ]
+
+        results = list(demon_collection.aggregate(pipeline))
+
+        for result in results:
+            result["levelID"] = result.pop("_id")
+
+        return {"levels": results}

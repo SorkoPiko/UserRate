@@ -68,9 +68,7 @@ class $modify(RateProfilePage, ProfilePage) {
                                 "OK"
                             )->show();
 
-                            if (m_fields->reassignButton) {
-                                m_fields->reassignButton->removeFromParent();
-                            }
+                            if (m_fields->reassignButton) m_fields->reassignButton->removeFromParentAndCleanup(true);
                         }
                     });
                 }

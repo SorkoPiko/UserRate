@@ -28,3 +28,8 @@ std::optional<std::pair<int, int>> Global::getLevelRating(const int levelID) con
     if (const auto it = levelRatingCache.find(levelID); it != levelRatingCache.end()) return it->second;
     return std::nullopt;
 }
+
+DemonDifficulty Global::getDemonRating(const int levelID) const {
+    if (const auto it = levelDemonRatingCache.find(levelID); it != levelDemonRatingCache.end()) return it->second;
+    return HARD;
+}

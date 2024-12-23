@@ -19,6 +19,8 @@ AdminPage* AdminPage::create() {
 bool AdminPage::init() {
     const auto winSize = CCDirector::sharedDirector()->getWinSize();
 
+    filters = Global::get()->getFilters();
+
     mainLayer = CCNode::create();
     mainLayer->setID("main-layer");
     mainLayer->setContentSize(winSize);
@@ -211,6 +213,7 @@ void AdminPage::onBack(CCObject*) {
 }
 
 void AdminPage::keyBackClicked() {
+    Global::get()->setFilters(filters);
     CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
 }
 

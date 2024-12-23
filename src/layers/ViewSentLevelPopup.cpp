@@ -151,18 +151,26 @@ void ViewSentLevelPopup::onPlay(CCObject*) {
 }
 
 void ViewSentLevelPopup::onClear(CCObject*) {
-    API::clearLevelSends(level.id, [this](const bool success) {
-        if (success) {
-            FLAlertLayer::create(
-                "Clear Level Sends",
-                "Success! The level's sends have been cleared.",
-                "OK"
-            )->show();
+    createQuickPopup(
+        "Clear Level Sends",
+        "Are you sure you want to clear this level's sends?",
+        "Cancel", "Clear",
+        [this](auto, const bool btn2) {
+            if (btn2) API::clearLevelSends(level.id, [this](const bool success) {
+                if (success) {
+                    FLAlertLayer::create(
+                        "Clear Level Sends",
+                        "Success! The level's sends have been cleared.",
+                        "OK"
+                    )->show();
 
-            Global::get()->clearLevelPages();
-            adminPage->loadLevelPage();
+                    Global::get()->clearLevelPages();
+                    adminPage->loadLevelPage();
 
-            onClose(nullptr);
+                    onClose(nullptr);
+                }
+            });
         }
-    });
+    )->m_button1->updateBGImage("GJ_button_06.png");
+
 }

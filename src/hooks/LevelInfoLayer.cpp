@@ -1,20 +1,51 @@
 #include <Geode/modify/LevelInfoLayer.hpp>
 
+#include "../managers/API.hpp"
 #include "../managers/Global.hpp"
 #include "../nodes/DifficultyNode.hpp"
 
 using namespace geode::prelude;
 
 class $modify(RateLevelInfoLayer, LevelInfoLayer) {
+    struct Fields {
+        CCMenuItemSpriteExtra* rateButton = nullptr;
+    };
+
     bool init(GJGameLevel* level, const bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
 
+        if (const auto global = Global::get(); !global->levelRatingExists(m_level->m_levelID.value())) {
+            API::checkRatedLevels({m_level->m_levelID.value()}, [this](const bool success) {
+                if (success) addCustom();
+            });
+        }
+        else addCustom();
+
+        return true;
+    }
+
+    void addCustom() {
         const auto global = Global::get();
         const auto rating = global->getLevelRating(m_level->m_levelID.value());
 
-        if (rating.has_value() && m_level->m_stars == 0) {
-            m_difficultySprite->updateDifficultyFrame(DifficultyNode::getDifficultyForStars(rating.value().first), GJDifficultyName::Short);
-            m_difficultySprite->updateFeatureState(static_cast<GJFeatureState>(rating.value().second));
+        modifySprite();
+
+        if (rating.has_value() && global->isAdmin()) {
+            const auto leftMenu = getChildByID("left-side-menu");
+            if (global->isMod()) {
+                const auto derateSprite = CircleButtonSprite::create(
+                    CCSprite::createWithSpriteFrameName("modBadge_01_001.png"),
+                    CircleBaseColor::DarkPurple
+                );
+                m_fields->rateButton = CCMenuItemSpriteExtra::create(
+                    derateSprite,
+                    this,
+                    menu_selector(RateLevelInfoLayer::onDerate)
+                );
+                m_fields->rateButton->setID("derate-level"_spr);
+                leftMenu->addChild(m_fields->rateButton);
+                leftMenu->updateLayout();
+            }
         }
 
         CCNode* menu;
@@ -26,32 +57,53 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
                     CCSprite::createWithSpriteFrameName("modBadge_01_001.png"),
                     CircleBaseColor::Cyan
                 );
-                const auto rateButton = CCMenuItemSpriteExtra::create(
+                m_fields->rateButton = CCMenuItemSpriteExtra::create(
                     rateSprite,
                     this,
                     menu_selector(RateLevelInfoLayer::onModRate)
                 );
-                rateButton->setID("rate-stars-mod"_spr);
-                menu->addChild(rateButton);
+                m_fields->rateButton->setID("rate-level"_spr);
+                menu->addChild(m_fields->rateButton);
                 menu->updateLayout();
             }
         }
-        else return true;
+        else return;
+
+        const auto demon = rating.has_value() && rating.value().first == 10;
 
         const auto rateSprite = CircleButtonSprite::create(
-            CCSprite::createWithSpriteFrameName(m_level->m_demon == 1 ? "diffIcon_06_btn_001.png" : "GJ_bigStar_noShadow_001.png"),
+            CCSprite::createWithSpriteFrameName(demon ? "diffIcon_06_btn_001.png" : "GJ_bigStar_noShadow_001.png"),
             CircleBaseColor::Cyan
         );
 
         const auto button = CCMenuItemSpriteExtra::create(
             rateSprite,
             this,
-            m_level->m_demon == 1 ? menu_selector(RateLevelInfoLayer::onCustomDemonRate) : menu_selector(RateLevelInfoLayer::onCustomRate)
+            demon ? menu_selector(RateLevelInfoLayer::onCustomDemonRate) : menu_selector(RateLevelInfoLayer::onCustomRate)
         );
         button->setID("rate-stars"_spr);
         menu->addChild(button);
         menu->updateLayout();
-        return true;
+    }
+
+    void modifySprite() const {
+        const auto global = Global::get();
+        if (const auto rating = global->getLevelRating(m_level->m_levelID.value()); rating.has_value() && m_level->m_stars == 0) {
+            int diff = DifficultyNode::getDifficultyForStars(rating.value().first);
+            if (rating.value().first == 10) diff = DifficultyNode::getDifficultyForDemon(global->getDemonRating(m_level->m_levelID.value()));
+            m_difficultySprite->updateDifficultyFrame(diff, GJDifficultyName::Short);
+            m_difficultySprite->updateFeatureState(static_cast<GJFeatureState>(rating.value().second));
+        }
+    }
+
+    void levelDownloadFinished(GJGameLevel* p0) {
+        LevelInfoLayer::levelDownloadFinished(p0);
+        modifySprite();
+    }
+
+    void levelUpdateFinished(GJGameLevel* p0, const UpdateResponse p1) {
+        LevelInfoLayer::levelUpdateFinished(p0, p1);
+        modifySprite();
     }
 
     void onRateStars(CCObject* sender) {
@@ -85,6 +137,29 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
 
         const auto layer = RateStarsLayer::create(m_level->m_levelID.value(), m_level->isPlatformer(), true);
         layer->show();
+    }
+
+    void onDerate(CCObject* sender) {
+        createQuickPopup(
+            "Derate level",
+            "Are you sure you want to derate this level?",
+            "Cancel", "Derate",
+            [this](auto, const bool btn2) {
+                if (btn2) {
+                    API::derateLevel(m_level->m_levelID.value(), [this](const bool success) {
+                        if (success) {
+                            FLAlertLayer::create(
+                                "Derate level",
+                                "Success! The level has been derated.",
+                                "OK"
+                            )->show();
+
+                            if (m_fields->rateButton) m_fields->rateButton->removeFromParentAndCleanup(true);
+                        }
+                    });
+                }
+            }
+        )->m_button1->updateBGImage("GJ_button_06.png");
     }
 
     void onCustomDemonRate(CCObject*) {

@@ -45,7 +45,7 @@ BarChartBar BarChartNode::calculateBar(const BarChartData &barData, const int in
     const float percent = static_cast<float>(barData.value) / static_cast<float>(sum);
     float height = (chartSize - labelWidth) * (static_cast<float>(barData.value) / static_cast<float>(sum)) * (static_cast<float>(sum) / static_cast<float>(maxValue));
     const std::string percentage = std::to_string(barData.value) + " (" + floatToString(percent * 100, 2) + "%)";
-    // create labels
+
     auto labelLabel = CCLabelBMFont::create(barData.label.c_str(), "chatFont.fnt");
     scaleLabelToWidth(labelLabel, labelWidth);
     labelLabel->setAnchorPoint({0.0f, 0.5f});
@@ -53,23 +53,24 @@ BarChartBar BarChartNode::calculateBar(const BarChartData &barData, const int in
     labelLabel->setPosition({0.0f - labelPositionAdjustement, this->getContentHeight() - barHeight * index - barHeight / 2});
     if (labelLabel->getScaledContentHeight() > barHeight) labelLabel->setScale(labelLabel->getScale() * (barHeight / labelLabel->getScaledContentHeight()));
     this->addChild(labelLabel);
+
     auto percentageLabel = CCLabelBMFont::create(percentage.c_str(), "chatFont.fnt");
     scaleLabelToWidth(percentageLabel, labelWidth * 1.5f);
     percentageLabel->setAnchorPoint({0.0f, 0.5f});
     percentageLabel->setPosition({labelWidth + height + 2.0f, this->getContentHeight() - barHeight * index - barHeight / 2});
     if (percentageLabel->getScaledContentHeight() > barHeight) percentageLabel->setScale(percentageLabel->getScale() * (barHeight / percentageLabel->getScaledContentHeight()));
     this->addChild(percentageLabel);
+
     return {barData.color, height};
 }
 
 void BarChartNode::draw() {
     CCNode::draw();
-    const float padding = Mod::get()->getSettingValue<bool>("thin-chart-bars") ? barHeight * 0.05f : 0.0f;
     for (int i = 0; i < processedData.size(); i++) {
         ccDrawSolidRect(
-            {labelWidth, getContentHeight() - barHeight * i - padding},
+            {labelWidth, getContentHeight() - barHeight * i},
             {labelWidth + processedData[i].height,
-            getContentHeight() - barHeight * (i + 1) + padding}, processedData[i].color
+            getContentHeight() - barHeight * (i + 1)}, processedData[i].color
         );
     }
 }

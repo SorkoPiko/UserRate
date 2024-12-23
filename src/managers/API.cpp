@@ -25,9 +25,7 @@ void API::sendPostRequest(const std::string& url, const matjson::Value& body, co
                     callback(ret);
                 }
             });
-        } else {
-            callback(data);
-        }
+        } else callback(data);
     };
 
     downloadListener.bind([callback, retryCallback] (web::WebTask::Event* e) {
@@ -41,9 +39,7 @@ void API::sendPostRequest(const std::string& url, const matjson::Value& body, co
                     matjson::Value unauthorized;
                     unauthorized["error"] = "Unauthorized";
                     retryCallback(unauthorized);
-                } else {
-                    callback(ret);
-                }
+                } else callback(ret);
                 return;
             }
             const auto data = res->json().unwrapOr(matjson::Value{});
@@ -68,9 +64,8 @@ void API::sendGetRequest(const std::string& url, const bool authRequired, const 
     auto retryCallback = [url, authRequired, callback](const matjson::Value& data) {
         if (data.contains("error") && data["error"].asString().unwrapOrDefault() == "Unauthorized") {
             getToken([url, authRequired, callback](const bool success) {
-                if (success) {
-                    sendGetRequest(url, authRequired, callback);
-                } else {
+                if (success) sendGetRequest(url, authRequired, callback);
+                else {
                     matjson::Value ret;
                     ret["error"] = "Failed to refresh token.";
                     callback(ret);
@@ -92,9 +87,7 @@ void API::sendGetRequest(const std::string& url, const bool authRequired, const 
                     matjson::Value unauthorized;
                     unauthorized["error"] = "Unauthorized";
                     retryCallback(unauthorized);
-                } else {
-                    callback(ret);
-                }
+                } else callback(ret);
                 return;
             }
             const auto data = res->json().unwrapOrDefault();
@@ -153,9 +146,7 @@ void API::getToken(const std::function<void(bool)>& callback) {
             token = data["access_token"].asString().unwrapOrDefault();
             Mod::get()->setSavedValue("token", token);
             callback(true);
-        } else if (e->isCancelled()) {
-            showFailurePopup("Failed to fetch token: Request was cancelled.");
-        }
+        } else if (e->isCancelled()) showFailurePopup("Failed to fetch token: Request was cancelled.");
     });
 
     tokenRequest = std::make_unique<web::WebRequest>();
@@ -292,9 +283,7 @@ void API::clearLevelSends(const int levelID, const std::function<void(bool)>& ca
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to clear level sends: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);
-        } else {
-            callback(true);
-        }
+        } else callback(true);
     });
 }
 
@@ -310,13 +299,37 @@ void API::rateLevel(const int levelID, const int stars, const int feature, const
         loadLayer->show();
     }
 
-    sendPostRequest(SERVER_URL "/mod/rate", body, true, [callback](const matjson::Value& data) {
+    sendPostRequest(SERVER_URL "/mod/rate", body, true, [callback, levelID, stars, feature](const matjson::Value& data) {
         if (loadLayer) loadLayer->finished();
 
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to rate level: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);
         } else {
+            Global::get()->setLevelRating(levelID, std::make_pair(stars, feature));
+            callback(true);
+        }
+    });
+}
+
+void API::derateLevel(const int levelID, const std::function<void(bool)>& callback) {
+    matjson::Value body;
+
+    body["levelID"] = levelID;
+
+    if (isLoading) {
+        loadLayer = LoadLayer::create();
+        loadLayer->show();
+    }
+
+    sendPostRequest(SERVER_URL "/admin/derate", body, true, [callback, levelID](const matjson::Value& data) {
+        if (loadLayer) loadLayer->finished();
+
+        if (data.contains("error")) {
+            showFailurePopup(fmt::format("Failed to derate level: {}", data["error"].asString().unwrapOrDefault()));
+            callback(false);
+        } else {
+            Global::get()->setLevelRating(levelID, std::nullopt);
             callback(true);
         }
     });
@@ -328,22 +341,21 @@ void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function
 
     sendGetRequest(url.str(), true, [callback, levelIDs](const matjson::Value& data) {
         if (data.contains("error")) {
-            showFailurePopup(fmt::format("Failed to check rated levels: {}", data["error"].asString().unwrapOrDefault()));
+            //showFailurePopup(fmt::format("Failed to check rated levels: {}", data["error"].asString().unwrapOrDefault()));
+            queueInMainThread([] {Notification::create("UserRate failed to fetch rated levels", NotificationIcon::Error)->show();});
             callback({});
         } else {
             const auto levels = data["levels"].as<std::vector<RatedLevel>>().unwrapOrDefault();
             const auto global = Global::get();
-            std::vector<int> ratedIDs;
+            std::vector<int> unrated = levelIDs;
 
-            for (const auto& [id, stars, feature] : levels) {
-                ratedIDs.push_back(id);
+            for (const auto& [id, stars, feature, demon] : levels) {
+                std::erase(unrated, id);
                 global->setLevelRating(id, std::make_optional(std::make_pair(stars, feature)));
+                if (stars == 10) global->setDemonRating(id, demon.value_or(HARD));
             }
 
-            std::vector<int> missingIDs;
-            std::ranges::set_difference(levelIDs, ratedIDs, std::back_inserter(missingIDs));
-
-            for (const int id : missingIDs) global->setLevelRating(id, std::nullopt);
+            for (const int id : unrated) global->setLevelRating(id, std::nullopt);
 
             callback(true);
         }

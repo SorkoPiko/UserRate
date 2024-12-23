@@ -1,5 +1,6 @@
 #ifndef DIFFICULTYNODE_HPP
 #define DIFFICULTYNODE_HPP
+#include "../types/RatedLevel.hpp"
 
 using namespace geode::prelude;
 
@@ -14,6 +15,7 @@ public:
     static DifficultyNode* create(int stars, const GJDifficultyName& length, const GJFeatureState& feature, bool isPlatformer);
 
     static int getDifficultyForStars(int stars);
+    static int getDifficultyForDemon(DemonDifficulty demon);
 };
 
 #endif

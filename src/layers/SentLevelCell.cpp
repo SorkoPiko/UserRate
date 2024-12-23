@@ -16,6 +16,12 @@ SentLevelCell* SentLevelCell::create(const SentLevel& level, const float width, 
     return nullptr;
 }
 
+std::string SentLevelCell::floatToString(const float number, const int precision) {
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(precision) << number;
+    return stream.str();
+}
+
 bool SentLevelCell::init(const SentLevel& level, float width, AdminPage* adminPage) {
     this->level = level;
     this->adminPage = adminPage;
@@ -31,10 +37,47 @@ bool SentLevelCell::init(const SentLevel& level, float width, AdminPage* adminPa
     nameLabel->setAnchorPoint({0.f, 0.5f});
     addChild(nameLabel);
 
-    diffNode = DifficultyNode::create(level.averageRating, GJDifficultyName::Short, static_cast<GJFeatureState>(std::round(level.averageFeature)), is_platformer);
+    diffNode = DifficultyNode::create(std::round(level.averageRating), GJDifficultyName::Short, static_cast<GJFeatureState>(std::round(level.averageFeature)), is_platformer);
     diffNode->setID("difficulty-node");
     diffNode->setPosition({27.5f, HEIGHT / 2.f});
     addChild(diffNode);
+
+    sendsSprite = CCSprite::createWithSpriteFrameName("GJ_sDownloadIcon_001.png");
+    sendsSprite->setID("sends-sprite");
+    sendsSprite->setPosition({(width - 100.f)/3.f - 30.f, HEIGHT / 3.f});
+    addChild(sendsSprite);
+
+    sendsLabel = CCLabelBMFont::create(numToAbbreviatedString(level.totalSends).c_str(), "bigFont.fnt");
+    sendsLabel->setID("sends-label");
+    sendsLabel->setAnchorPoint({0.f, 0.5f});
+    sendsLabel->setPosition({(width - 100.f)/3.f - 20.f, HEIGHT / 3.f});
+    sendsLabel->limitLabelWidth(100.f, 0.5f, .1f);
+    addChild(sendsLabel);
+
+    starsSprite = CCSprite::createWithSpriteFrameName(is_platformer ? "GJ_moonsIcon_001.png" : "GJ_sStarsIcon_001.png");
+    starsSprite->setID("stars-sprite");
+    if (is_platformer) starsSprite->setScale(0.8f);
+    starsSprite->setPosition({(width - 100.f)/3.f*2.f - 30.f, HEIGHT / 3.f});
+    addChild(starsSprite);
+
+    starsLabel = CCLabelBMFont::create(floatToString(level.averageRating, 2).c_str(), "bigFont.fnt");
+    starsLabel->setID("stars-label");
+    starsLabel->setAnchorPoint({0.f, 0.5f});
+    starsLabel->setPosition({(width - 100.f)/3.f*2.f - 20.f, HEIGHT / 3.f});
+    starsLabel->limitLabelWidth(100.f, 0.5f, .1f);
+    addChild(starsLabel);
+
+    featureSprite = CCSprite::createWithSpriteFrameName("GJ_sTrendingIcon_001.png");
+    featureSprite->setID("feature-sprite");
+    featureSprite->setPosition({(width - 100.f)/3.f*3.f - 30.f, HEIGHT / 3.f});
+    addChild(featureSprite);
+
+    featureLabel = CCLabelBMFont::create(floatToString(level.averageFeature, 2).c_str(), "bigFont.fnt");
+    featureLabel->setID("feature-label");
+    featureLabel->setAnchorPoint({0.f, 0.5f});
+    featureLabel->setPosition({(width - 100.f)/3.f*3.f - 20.f, HEIGHT / 3.f});
+    featureLabel->limitLabelWidth(100.f, 0.5f, .1f);
+    addChild(featureLabel);
 
     buttonMenu = CCMenu::create();
     buttonMenu->setID("button-menu");

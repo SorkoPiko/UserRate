@@ -3,28 +3,59 @@ import threading
 import queue
 import time
 import asyncio
+from typing import Optional
+
+from models import Feature
 
 class AccountChecker:
     def __init__(self):
-        self.q = queue.Queue()
+        self.q: queue.Queue = queue.Queue()
         self.lock = threading.Lock()
-        self.loop = asyncio.get_event_loop()
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.thread: Optional[threading.Thread] = None
+        self.running = threading.Event()
+
+    def start(self, loop: asyncio.AbstractEventLoop):
+        """Start the worker thread with the given event loop"""
+        self.loop = loop
+        self.running.set()
         self.thread = threading.Thread(target=self.worker)
         self.thread.daemon = True
         self.thread.start()
 
+    def stop(self):
+        """Stop the worker thread"""
+        if self.running.is_set():
+            self.running.clear()
+            self.q.put((None, None, None))
+            if self.thread:
+                self.thread.join(timeout=5)
+
     def worker(self):
-        while True:
-            accountid, gjp, callback, *args = self.q.get()
-            with self.lock:
-                result = self.check_account(accountid, gjp)
-                self.loop.call_soon_threadsafe(asyncio.create_task, callback(result, *args))
-                time.sleep(1)
-            self.q.task_done()
+        while self.running.is_set():
+            try:
+                accountid, gjp, callback, *args = self.q.get(timeout=1)
+                if accountid is None:
+                    break
+
+                with self.lock:
+                    if not self.running.is_set():
+                        break
+
+                    result = self.check_account(accountid, gjp)
+                    if self.running.is_set() and self.loop and not self.loop.is_closed():
+                        self.loop.call_soon_threadsafe(
+                            lambda: asyncio.create_task(callback(result, *args))
+                        )
+                    time.sleep(1)
+                self.q.task_done()
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Error in worker thread: {e}")
 
     @staticmethod
     def check_account(accountid, gjp) -> bool:
-        # thanks GDAuth
         data = {
             "targetAccountID": accountid,
             "accountID": accountid,
@@ -46,4 +77,14 @@ class AccountChecker:
         return True
 
     def queue_check(self, accountid, gjp, callback, *args):
-        self.q.put((accountid, gjp, callback, *args))
+        if self.running.is_set():
+            self.q.put((accountid, gjp, callback, *args))
+
+def featureToString(feature: Feature) -> str:
+    return {
+        Feature.RATE: "Rate",
+        Feature.FEATURE: "Feature",
+        Feature.EPIC: "Epic",
+        Feature.LEGENDARY: "Legendary",
+        Feature.MYTHIC: "Mythic"
+    }[feature]

@@ -40,21 +40,32 @@ class $modify(RateLevelBrowserLayer, LevelBrowserLayer) {
     void modifyDifficultySprite() {
         const auto global = Global::get();
 
-        for (auto* cell_ : CCArrayExt<CCNode*>(m_list->m_listView->m_tableView->m_contentLayer->getChildren())) {
-            const auto* cell = typeinfo_cast<LevelCell*>(cell_);
-            if (!cell) {
-                continue;
-            }
+        if (
+            !m_list ||
+            !m_list->m_listView ||
+            !m_list->m_listView->m_tableView ||
+            !m_list->m_listView->m_tableView->m_contentLayer
+        ) return;
 
-            if (!isValidLevelType(cell->m_level->m_levelType)) {
-                continue;
-            }
+        auto* children = m_list->m_listView->m_tableView->m_contentLayer->getChildren();
+
+        if (!children) return;
+
+        for (auto* cell_ : CCArrayExt<CCNode*>(children)) {
+            if (!cell_) continue;
+            const auto* cell = typeinfo_cast<LevelCell*>(cell_);
+            if (!cell || !cell->m_level || !cell->m_mainLayer) continue;
+            if (!isValidLevelType(cell->m_level->m_levelType)) continue;
 
             const auto rating = global->getLevelRating(cell->m_level->m_levelID.value());
             if (!rating.has_value()) continue;
+
             const auto sprite = typeinfo_cast<GJDifficultySprite*>(cell->m_mainLayer->getChildByIDRecursive("difficulty-sprite"));
             if (!sprite) continue;
-            sprite->updateDifficultyFrame(DifficultyNode::getDifficultyForStars(rating.value().first), GJDifficultyName::Short);
+
+            int diff = DifficultyNode::getDifficultyForStars(rating.value().first);
+            if (rating.value().first == 10) diff = DifficultyNode::getDifficultyForDemon(global->getDemonRating(cell->m_level->m_levelID.value()));
+            sprite->updateDifficultyFrame(diff, GJDifficultyName::Short);
             sprite->updateFeatureState(static_cast<GJFeatureState>(rating.value().second));
         }
     }

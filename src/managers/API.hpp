@@ -34,6 +34,7 @@ public:
     static void getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback);
     static void clearLevelSends(int levelID, const std::function<void(bool)>& callback);
     static void rateLevel(int levelID, int stars, int feature, const std::function<void(bool)>& callback);
+    static void derateLevel(int levelID, const std::function<void(bool)>& callback);
     static void checkRatedLevels(const std::vector<int>& levelIDs, const std::function<void(bool)>& callback);
 };
 
