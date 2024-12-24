@@ -125,6 +125,9 @@ async def suggest(request: Request):
         "feature": form.feature.value
     }
 
+    if db.rated_level(form.levelID):
+        return "-2"
+
     db.send(sendDict)
     print(f"{request.client.host} suggested {form.stars} stars with a {form.feature} rating for level {form.levelID}")
 
@@ -173,6 +176,10 @@ async def check_rated_levels(levelIDs: str):
 
     return db.check_rated_levels(id_list)
 
+@app.get("/rates")
+async def get_rates():
+    return {"levels": db.get_latest_rated_levels()}
+
 @app.get("/mod/sent")
 async def get_sent_levels(
         sort: Sort = Sort.TOP,
@@ -193,7 +200,7 @@ async def rate_level(data: Rate, token_data: dict = Depends(verify_token)):
     if data.stars < 1 or data.stars > 10:
         raise HTTPException(status_code=400, detail="Stars must be between 1 and 10")
 
-    db.rate(data.levelID, data.stars, data.feature.value)
+    db.rate(data.levelID, data.stars, data.feature.value, token_data["accountID"])
 
     webhook = DiscordWebhook(url=environ.get("WEBHOOK_URL"), rate_limit_retry=True)
     embed = DiscordEmbed(

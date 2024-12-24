@@ -15,6 +15,9 @@ constexpr bool isValidLevelType(GJLevelType level) {
 }
 
 class $modify(RateLevelBrowserLayer, LevelBrowserLayer) {
+    struct Fields {
+        bool block = false;
+    };
     void setupLevelBrowser(CCArray* levels) {
         LevelBrowserLayer::setupLevelBrowser(levels);
         if (!m_list->m_listView) {
@@ -31,13 +34,30 @@ class $modify(RateLevelBrowserLayer, LevelBrowserLayer) {
             if (auto* level = dynamic_cast<GJGameLevel*>(level_); isValidLevelType(level->m_levelType) && level->m_stars.value() == 0 && !global->levelRatingExists(level->m_levelID)) levelIds.push_back(level->m_levelID);
         }
 
-        if (levelIds.empty()) return modifyDifficultySprite();
+        if (levelIds.empty()) return modifyDifficultySprites();
+        m_fields->block = true;
         API::checkRatedLevels(levelIds, [this](const bool success) {
-            if (success) modifyDifficultySprite();
+            if (success) modifyDifficultySprites();
+            else m_fields->block = false;
         });
     }
 
-    void modifyDifficultySprite() {
+    void keyDown(const enumKeyCodes p0) override {
+        if (m_fields->block) return;
+        LevelBrowserLayer::keyDown(p0);
+    }
+
+    void onBack(CCObject* sender) override {
+        if (m_fields->block) return;
+        LevelBrowserLayer::onBack(sender);
+    }
+
+    void keyBackClicked() override {
+        if (m_fields->block) return;
+        LevelBrowserLayer::keyBackClicked();
+    }
+
+    void modifyDifficultySprites() {
         const auto global = Global::get();
 
         if (
@@ -68,5 +88,7 @@ class $modify(RateLevelBrowserLayer, LevelBrowserLayer) {
             sprite->updateDifficultyFrame(diff, GJDifficultyName::Short);
             sprite->updateFeatureState(static_cast<GJFeatureState>(rating.value().second));
         }
+
+        m_fields->block = false;
     }
 };

@@ -20,6 +20,8 @@ class Global {
     std::map<int, std::optional<std::pair<int, int>>> levelRatingCache{}; // levelID, rating, feature
     std::map<int, DemonDifficulty> levelDemonRatingCache{}; // levelID, demon rating
 
+    std::vector<int> latestRates{};
+
     SentLevelFilters filters{};
 
     bool customRating = false;
@@ -63,6 +65,9 @@ public:
 
     void setDemonRating(const int levelID, const DemonDifficulty value) {levelDemonRatingCache[levelID] = value;}
     [[nodiscard]] DemonDifficulty getDemonRating(int levelID) const;
+
+    void setLatestRates(const std::vector<int>& rates) {latestRates = rates;}
+    [[nodiscard]] std::vector<int> getLatestRates() const {return latestRates;}
 
     [[nodiscard]] SentLevelFilters getFilters() const {return filters;}
     void setFilters(const SentLevelFilters& value) {filters = value;}

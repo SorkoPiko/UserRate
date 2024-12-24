@@ -41,6 +41,7 @@ class ViewSentLevelPopup final : public Popup<const SentLevel&, AdminPage*>{
 
     AdminPage* adminPage = nullptr;
     SentLevel level;
+    bool ready = false;
 
     CCLabelBMFont* title = nullptr;
     BarChartNode* ratingChart = nullptr;
@@ -52,6 +53,7 @@ class ViewSentLevelPopup final : public Popup<const SentLevel&, AdminPage*>{
     CCMenuItemSpriteExtra* clearButton = nullptr;
 
     bool setup(const SentLevel& level, AdminPage* adminPage) override;
+    void onClose(CCObject* sender) override;
 
     static ccColor4F hexColorTo4F(int hexColor);
     static std::string floatToString(float number, int precision);

@@ -141,6 +141,7 @@ bool AdminPage::init() {
     nextPageButton->setPosition({listLayer->getContentWidth() + 20.f, listLayer->getContentHeight() / 2});
     pageMenu->addChild(nextPageButton);
 
+    ready = true;
     loadLevelPage();
 
     addSideArt(mainLayer, SideArt::Bottom);
@@ -165,7 +166,10 @@ void AdminPage::refresh(CCObject*) {
 }
 
 void AdminPage::loadLevelPage() {
+    if (!ready) return;
+
     if (levelList) levelList->removeFromParentAndCleanup(true);
+    if (!prevPageButton || !nextPageButton) return;
 
     if (filters.page == 0) prevPageButton->setVisible(false);
     else prevPageButton->setVisible(true);
@@ -191,6 +195,8 @@ void AdminPage::loadLevelPage() {
         loadUI();
 
         API::getSentLevels(filters, [this](const bool success) {
+            if (!ready) return;
+
             finishLoadUI();
             if (success) loadLevelPage();
         });
@@ -213,11 +219,15 @@ void AdminPage::onBack(CCObject*) {
 }
 
 void AdminPage::keyBackClicked() {
+    ready = false;
     Global::get()->setFilters(filters);
     CCDirector::sharedDirector()->popSceneWithTransition(0.5f, kPopTransitionFade);
 }
 
 void AdminPage::loadUI() {
+    if (!ready) return;
+
+    if (!pageMenu || !optionsMenu || !refreshMenu) return;
     loadingCircle = LoadingCircle::create();
     loadingCircle->setParentLayer(this);
     loadingCircle->show();
@@ -228,11 +238,13 @@ void AdminPage::loadUI() {
 }
 
 void AdminPage::finishLoadUI() const {
-    loadingCircle->removeFromParentAndCleanup(true);
+    if (!ready) return;
 
-    pageMenu->setVisible(true);
-    optionsMenu->setVisible(true);
-    refreshMenu->setVisible(true);
+    if (loadingCircle) loadingCircle->removeFromParentAndCleanup(true);
+
+    if (pageMenu) pageMenu->setVisible(true);
+    if (optionsMenu) optionsMenu->setVisible(true);
+    if (refreshMenu) refreshMenu->setVisible(true);
 }
 
 // yes this is blatantly copied from Creation Rotation

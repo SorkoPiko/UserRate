@@ -1,8 +1,8 @@
 #ifndef API_HPP
 #define API_HPP
 
-#define SERVER_URL "https://userrate.sorkopiko.com"
-//#define SERVER_URL "http://127.0.0.1:8000"
+//#define SERVER_URL "https://userrate.sorkopiko.com"
+#define SERVER_URL "http://127.0.0.1:8000"
 
 #include <Geode/utils/web.hpp>
 
@@ -31,6 +31,9 @@ class API {
 public:
     static void loadingComplete() {isLoading = false;}
 
+    // these callbacks are NOT SAFE
+    // meaning they can be called after the caller has been destroyed
+    // i couldn't find a way to fix this so i just manually check if the relevant objects are still alive
     static void getToken(const std::function<void(bool)>& callback);
     static void reassignModerator(int accountID, bool promote, const std::function<void(bool)>& callback);
     static void getModerators(const std::function<void(bool)>& callback);
@@ -39,6 +42,7 @@ public:
     static void rateLevel(int levelID, int stars, int feature, const std::function<void(bool)>& callback);
     static void derateLevel(int levelID, const std::function<void(bool)>& callback);
     static void checkRatedLevels(const std::vector<int>& levelIDs, const std::function<void(bool)>& callback);
+    static void getLatestRates(const std::function<void(bool)>& callback);
 };
 
 

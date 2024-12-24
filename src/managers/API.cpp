@@ -256,7 +256,7 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
                     callback(true);
                 } else {
                     showFailurePopup(fmt::format("Failed to fetch sent levels: {} ({})", error, error2));
-                    callback(false);
+                    callback(true);
                 }
                 delete delegate;
             });
@@ -272,7 +272,7 @@ void API::clearLevelSends(const int levelID, const std::function<void(bool)>& ca
 
     body["levelID"] = levelID;
 
-    if (isLoading) {
+    if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
     }
@@ -294,7 +294,7 @@ void API::rateLevel(const int levelID, const int stars, const int feature, const
     body["stars"] = stars;
     body["feature"] = feature;
 
-    if (isLoading) {
+    if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
     }
@@ -317,7 +317,7 @@ void API::derateLevel(const int levelID, const std::function<void(bool)>& callba
 
     body["levelID"] = levelID;
 
-    if (isLoading) {
+    if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
     }
@@ -343,7 +343,7 @@ void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function
         if (data.contains("error")) {
             //showFailurePopup(fmt::format("Failed to check rated levels: {}", data["error"].asString().unwrapOrDefault()));
             queueInMainThread([] {Notification::create("UserRate failed to fetch rated levels", NotificationIcon::Error)->show();});
-            callback({});
+            callback(false);
         } else {
             const auto levels = data["levels"].as<std::vector<RatedLevel>>().unwrapOrDefault();
             const auto global = Global::get();
@@ -356,6 +356,28 @@ void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function
             }
 
             for (const int id : unrated) global->setLevelRating(id, std::nullopt);
+
+            callback(true);
+        }
+    });
+}
+
+void API::getLatestRates(const std::function<void(bool)>& callback) {
+    if (!isLoading) {
+        loadLayer = LoadLayer::create();
+        loadLayer->show();
+    }
+
+    sendGetRequest(SERVER_URL "/rates", false, [callback](const matjson::Value& data) {
+        if (loadLayer) loadLayer->finished();
+
+        if (data.contains("error")) {
+            showFailurePopup(fmt::format("Failed to fetch latest rates: {}", data["error"].asString().unwrapOrDefault()));
+            callback(false);
+        } else {
+            const auto rates = data["levels"].as<std::vector<int>>().unwrapOrDefault();
+
+            Global::get()->setLatestRates(rates);
 
             callback(true);
         }

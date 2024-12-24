@@ -24,14 +24,21 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
         return true;
     }
 
+    void onBack(CCObject* sender) {
+        LevelInfoLayer::onBack(sender);
+    }
+
     void addCustom() {
         const auto global = Global::get();
         const auto rating = global->getLevelRating(m_level->m_levelID.value());
 
         modifySprite();
 
+        const auto leftMenu = getChildByID("left-side-menu");
+        const auto rightMenu = getChildByID("right-side-menu");
+        if (!leftMenu || !rightMenu) return;
+
         if (rating.has_value() && global->isAdmin()) {
-            const auto leftMenu = getChildByID("left-side-menu");
             if (global->isMod()) {
                 const auto derateSprite = CircleButtonSprite::create(
                     CCSprite::createWithSpriteFrameName("modBadge_01_001.png"),
@@ -49,9 +56,9 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
         }
 
         CCNode* menu;
-        if (rating.has_value() && rating.value().first == 10) menu = getChildByID("right-side-menu");
+        if (rating.has_value() && rating.value().first == 10) menu = rightMenu;
         else if (!rating.has_value() && m_level->m_stars == 0) {
-            menu = getChildByID("left-side-menu");
+            menu = leftMenu;
             if (global->isMod()) {
                 const auto rateSprite = CircleButtonSprite::create(
                     CCSprite::createWithSpriteFrameName("modBadge_01_001.png"),
@@ -137,6 +144,14 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
 
         const auto layer = RateStarsLayer::create(m_level->m_levelID.value(), m_level->isPlatformer(), true);
         layer->show();
+
+        FLAlertLayer::create(
+            "Rating guidelines",
+            "1. The level must be at least <cr>40 seconds</c> long (there are exclusions, contact an <cg>admin</c> if you believe you found one).\n"
+            "2. Don't <cr>spam ratings</c> (i.e. rating <cy>all your own levels</c>, rating <co>all your friend's levels</c>, etc).\n"
+            "3. The level <cb>must</c> be at least <cr>partially decorated</c> (no layouts, etc). It doesn't need to be <cg>amazing decoration</c>, but <cy>effort must be present</c>.",
+            "OK"
+        )->show();
     }
 
     void onDerate(CCObject* sender) {

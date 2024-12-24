@@ -6,6 +6,12 @@
 using namespace geode::prelude;
 
 class $modify(RateRateStarsLayer, RateStarsLayer) {
+    bool init(const int p0, const bool p1, const bool p2) {
+        if (!RateStarsLayer::init(p0, p1, p2)) return false;
+
+        return true;
+    }
+
     void onRate(CCObject* sender) {
         const auto global = Global::get();
         if (!global->isModRating()) return RateStarsLayer::onRate(sender);
@@ -18,6 +24,7 @@ class $modify(RateRateStarsLayer, RateStarsLayer) {
                     "OK"
                 )->show();
                 global->clearLevelPages();
+
                 RateStarsLayer::onClose(nullptr);
             }
         });

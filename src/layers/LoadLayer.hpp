@@ -8,10 +8,12 @@ using namespace geode::prelude;
 class LoadLayer final : public FLAlertLayer {
     LoadingCircle* m_loadingCircle = nullptr;
     bool init() override;
+    bool initHidden();
 
 public:
     void finished();
     static LoadLayer* create();
+    static LoadLayer* createHidden();
 };
 
 #endif

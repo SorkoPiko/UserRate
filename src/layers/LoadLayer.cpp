@@ -1,6 +1,6 @@
 #include "LoadLayer.hpp"
 
-LoadLayer *LoadLayer::create() {
+LoadLayer* LoadLayer::create() {
     const auto ret = new LoadLayer();
     if (ret->init()) {
         ret->autorelease();
@@ -11,14 +11,16 @@ LoadLayer *LoadLayer::create() {
     return nullptr;
 }
 
+
 bool LoadLayer::init() {
-    if (!this->initWithColor({0, 0, 0, 75})) return false;
+    if (!initWithColor({0, 0, 0, 75})) return false;
     m_mainLayer = CCLayer::create();
     m_buttonMenu = CCMenu::create();
     m_mainLayer->addChild(m_buttonMenu);
     addChild(m_mainLayer);
     registerWithTouchDispatcher();
     setTouchEnabled(true);
+    setKeyboardEnabled(true);
 
     m_loadingCircle = LoadingCircle::create();
     m_loadingCircle->setParentLayer(m_mainLayer);

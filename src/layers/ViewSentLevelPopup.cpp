@@ -20,6 +20,8 @@ bool ViewSentLevelPopup::setup(const SentLevel& level, AdminPage* adminPage) {
     this->level = level;
     this->adminPage = adminPage;
 
+    ready = true;
+
     const auto width = m_mainLayer->getContentWidth();
 
     title = CCLabelBMFont::create("Level Info", "bigFont.fnt");
@@ -101,6 +103,11 @@ bool ViewSentLevelPopup::setup(const SentLevel& level, AdminPage* adminPage) {
     return true;
 }
 
+void ViewSentLevelPopup::onClose(CCObject* sender) {
+    ready = false;
+    Popup::onClose(sender);
+}
+
 ccColor4F ViewSentLevelPopup::hexColorTo4F(const int hexColor) {
     const float r = (hexColor >> 16 & 0xFF) / 255.0;
     const float g = (hexColor >> 8 & 0xFF) / 255.0;
@@ -165,8 +172,10 @@ void ViewSentLevelPopup::onClear(CCObject*) {
                     )->show();
 
                     Global::get()->clearLevelPages();
-                    adminPage->loadLevelPage();
 
+                    if (!ready) return;
+
+                    adminPage->loadLevelPage();
                     onClose(nullptr);
                 }
             });

@@ -176,7 +176,7 @@ class UserRateDB:
         collection = self.get_collection("data", "sends")
         collection.delete_many({"levelID": level_id})
 
-    def rate(self, level_id: int, stars: int, feature: int):
+    def rate(self, level_id: int, stars: int, feature: int, account_id: int):
         rates_collection = self.get_collection("data", "rates")
 
         # Insert into the rates collection
@@ -184,6 +184,7 @@ class UserRateDB:
             "_id": level_id,
             "stars": stars,
             "feature": feature,
+            "ratedBy": account_id,
             "timestamp": datetime.now(UTC)
         })
 
@@ -254,3 +255,13 @@ class UserRateDB:
             result["levelID"] = result.pop("_id")
 
         return {"levels": results}
+
+    def get_latest_rated_levels(self, max_levels: int = 200) -> list[dict]:
+        rates_collection = self.get_collection("data", "rates")
+        latest_rated_levels = rates_collection.find().sort("timestamp", DESCENDING).limit(max_levels)
+
+        rated_levels = []
+        for level in latest_rated_levels:
+            rated_levels.append(level["_id"])
+
+        return rated_levels

@@ -10,6 +10,10 @@ class $modify(RateProfilePage, ProfilePage) {
         CCMenuItemSpriteExtra* reassignButton = nullptr;
     };
 
+    void onClose(CCObject* sender) {
+        ProfilePage::onClose(sender);
+    }
+
     void loadPageFromUserInfo(GJUserScore* user) {
         ProfilePage::loadPageFromUserInfo(user);
 

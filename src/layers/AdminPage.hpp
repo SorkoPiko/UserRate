@@ -25,6 +25,7 @@ class AdminPage final : public CCLayer {
     LoadingCircle* loadingCircle = nullptr;
 
     SentLevelFilters filters{};
+    bool ready = false;
 
     bool init() override;
 
