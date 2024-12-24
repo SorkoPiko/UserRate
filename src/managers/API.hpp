@@ -1,8 +1,8 @@
 #ifndef API_HPP
 #define API_HPP
 
-//#define SERVER_URL "https://userrate.sorkopiko.com"
-#define SERVER_URL "http://127.0.0.1:8000"
+#define SERVER_URL "https://userrate.sorkopiko.com"
+//#define SERVER_URL "http://127.0.0.1:8000"
 
 #include <Geode/utils/web.hpp>
 
