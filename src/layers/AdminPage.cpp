@@ -168,7 +168,11 @@ void AdminPage::refresh(CCObject*) {
 void AdminPage::loadLevelPage() {
     if (!ready) return;
 
-    if (levelList) levelList->removeFromParentAndCleanup(true);
+    if (levelList) {
+        levelList->removeFromParentAndCleanup(true);
+        levelList = nullptr;
+    }
+
     if (!prevPageButton || !nextPageButton) return;
 
     if (filters.page == 0) prevPageButton->setVisible(false);
@@ -197,8 +201,8 @@ void AdminPage::loadLevelPage() {
         API::getSentLevels(filters, [this](const bool success) {
             if (!ready) return;
 
-            finishLoadUI();
             if (success) loadLevelPage();
+            finishLoadUI();
         });
     }
 }
