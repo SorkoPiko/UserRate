@@ -11,6 +11,16 @@ LoadLayer* LoadLayer::create() {
     return nullptr;
 }
 
+LoadLayer* LoadLayer::createHidden() {
+    const auto ret = new LoadLayer();
+    if (ret->initHidden()) {
+        ret->autorelease();
+        return ret;
+    }
+
+    delete ret;
+    return nullptr;
+}
 
 bool LoadLayer::init() {
     if (!initWithColor({0, 0, 0, 75})) return false;
@@ -27,6 +37,18 @@ bool LoadLayer::init() {
     m_loadingCircle->show();
     return true;
 }
+
+bool LoadLayer::initHidden() {
+    if (!initWithColor({0, 0, 0, 0})) return false;
+    m_mainLayer = CCLayer::create();
+    m_buttonMenu = CCMenu::create();
+    m_mainLayer->addChild(m_buttonMenu);
+    addChild(m_mainLayer);
+    registerWithTouchDispatcher();
+    setTouchEnabled(true);
+    setKeyboardEnabled(true);
+}
+
 
 void LoadLayer::finished() {
     removeFromParentAndCleanup(true);

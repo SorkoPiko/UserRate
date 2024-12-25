@@ -339,7 +339,14 @@ void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function
     std::ostringstream url;
     url << SERVER_URL << "/rated?levelIDs=" << fmt::format("{}", fmt::join(levelIDs, ","));
 
+    if (!isLoading) {
+        loadLayer = LoadLayer::createHidden();
+        loadLayer->show();
+    }
+
     sendGetRequest(url.str(), true, [callback, levelIDs](const matjson::Value& data) {
+        if (loadLayer) loadLayer->finished();
+
         if (data.contains("error")) {
             //showFailurePopup(fmt::format("Failed to check rated levels: {}", data["error"].asString().unwrapOrDefault()));
             queueInMainThread([] {Notification::create("UserRate failed to fetch rated levels", NotificationIcon::Error)->show();});
