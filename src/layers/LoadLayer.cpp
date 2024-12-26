@@ -47,6 +47,7 @@ bool LoadLayer::initHidden() {
     registerWithTouchDispatcher();
     setTouchEnabled(true);
     setKeyboardEnabled(true);
+    return true;
 }
 
 
