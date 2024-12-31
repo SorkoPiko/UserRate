@@ -6,6 +6,10 @@
 using namespace geode::prelude;
 
 class $modify(RateCCHttpClient, CCHttpClient) {
+    static void onModify(auto& self) {
+        if (!self.setHookPriorityPre("CCHttpClient::send", Priority::Early)) log::warn("Failed to set hook priority.");
+    }
+
     void send(CCHttpRequest* request) {
         if (!Global::get()->isCustomRating()) return CCHttpClient::send(request);
         const std::string url = request->getUrl();
