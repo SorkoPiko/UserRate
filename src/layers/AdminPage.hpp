@@ -2,6 +2,7 @@
 #define ADMINPAGE_HPP
 
 #include <Geode/Geode.hpp>
+#include <Geode/utils/web.hpp>
 
 #include "../types/SentLevelFilters.hpp"
 
@@ -23,6 +24,7 @@ class AdminPage final : public CCLayer {
     CCMenuItemSpriteExtra* prevPageButton = nullptr;
     CCMenuItemSpriteExtra* nextPageButton = nullptr;
     LoadingCircle* loadingCircle = nullptr;
+    EventListener<web::WebTask> listener;
 
     SentLevelFilters filters{};
     bool ready = false;

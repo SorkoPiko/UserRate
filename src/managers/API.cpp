@@ -13,12 +13,12 @@ std::unique_ptr<web::WebRequest> API::tokenRequest;
 LoadLayer* API::loadLayer;
 bool API::isLoading = true;
 
-void API::sendPostRequest(const std::string& url, const matjson::Value& body, const bool authRequired, const std::function<void(const matjson::Value&)>& callback) {
-    auto retryCallback = [url, body, authRequired, callback](const matjson::Value& data) {
+void API::sendPostRequest(const std::string& url, const matjson::Value& body, const bool authRequired, const std::function<void(const matjson::Value&)>& callback, EventListener<web::WebTask>& listener) {
+    auto retryCallback = [url, body, authRequired, callback, &listener](const matjson::Value& data) {
         if (data.contains("error") && data["error"].asString().unwrapOrDefault() == "Unauthorized") {
-            getToken([url, body, authRequired, callback](const bool success) {
+            getToken([url, body, authRequired, callback, &listener](const bool success) {
                 if (success) {
-                    sendPostRequest(url, body, authRequired, callback);
+                    sendPostRequest(url, body, authRequired, callback, listener);
                 } else {
                     matjson::Value ret;
                     ret["error"] = "Failed to refresh token.";
@@ -28,7 +28,7 @@ void API::sendPostRequest(const std::string& url, const matjson::Value& body, co
         } else callback(data);
     };
 
-    downloadListener.bind([callback, retryCallback] (web::WebTask::Event* e) {
+    listener.bind([callback, retryCallback] (web::WebTask::Event* e) {
         if (const auto res = e->getValue()) {
             if (!res->ok()) {
                 matjson::Value ret;
@@ -57,14 +57,14 @@ void API::sendPostRequest(const std::string& url, const matjson::Value& body, co
         if (token.empty()) token = Mod::get()->getSavedValue<std::string>("token", "");
         currentRequest->header("Authorization", fmt::format("Bearer {}", token));
     }
-    downloadListener.setFilter(currentRequest->post(url));
+    listener.setFilter(currentRequest->post(url));
 }
 
-void API::sendGetRequest(const std::string& url, const bool authRequired, const std::function<void(const matjson::Value&)>& callback) {
-    auto retryCallback = [url, authRequired, callback](const matjson::Value& data) {
+void API::sendGetRequest(const std::string& url, const bool authRequired, const std::function<void(const matjson::Value&)>& callback, EventListener<web::WebTask>& listener) {
+    auto retryCallback = [url, authRequired, callback, &listener](const matjson::Value& data) {
         if (data.contains("error") && data["error"].asString().unwrapOrDefault() == "Unauthorized") {
-            getToken([url, authRequired, callback](const bool success) {
-                if (success) sendGetRequest(url, authRequired, callback);
+            getToken([url, authRequired, callback, &listener](const bool success) {
+                if (success) sendGetRequest(url, authRequired, callback, listener);
                 else {
                     matjson::Value ret;
                     ret["error"] = "Failed to refresh token.";
@@ -76,7 +76,7 @@ void API::sendGetRequest(const std::string& url, const bool authRequired, const 
         }
     };
 
-    downloadListener.bind([callback, retryCallback] (web::WebTask::Event* e) {
+    listener.bind([callback, retryCallback] (web::WebTask::Event* e) {
         if (const auto res = e->getValue()) {
             if (!res->ok()) {
                 matjson::Value ret;
@@ -104,7 +104,7 @@ void API::sendGetRequest(const std::string& url, const bool authRequired, const 
         if (token.empty()) token = Mod::get()->getSavedValue<std::string>("token", "");
         currentRequest->header("Authorization", fmt::format("Bearer {}", token));
     }
-    downloadListener.setFilter(currentRequest->get(url));
+    listener.setFilter(currentRequest->get(url));
 }
 
 void API::showFailurePopup(const std::string &message) {
@@ -155,7 +155,7 @@ void API::getToken(const std::function<void(bool)>& callback) {
 }
 
 
-void API::reassignModerator(const int accountID, const bool promote, const std::function<void(bool)>& callback) {
+void API::reassignModerator(int accountID, bool promote, const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     matjson::Value body;
 
     body["promote"] = promote;
@@ -166,20 +166,20 @@ void API::reassignModerator(const int accountID, const bool promote, const std::
         loadLayer->show();
     }
 
-    sendPostRequest(SERVER_URL "/admin/reassign", body,true,  [callback](const matjson::Value& data) {
+    sendPostRequest(SERVER_URL "/admin/reassign", body,true,  [callback, &listener](const matjson::Value& data) {
         if (loadLayer) loadLayer->finished();
 
         if (data.contains("error")) {
             showFailurePopup(fmt::format("Failed to reassign moderator: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);
         } else {
-            getModerators([](bool) {});
+            getModerators([](bool) {}, listener);
             callback(true);
         }
-    });
+    }, listener);
 }
 
-void API::getModerators(const std::function<void(bool)>& callback) {
+void API::getModerators(const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
@@ -199,10 +199,14 @@ void API::getModerators(const std::function<void(bool)>& callback) {
 
             callback(true);
         }
-    });
+    }, listener);
 }
 
-void API::getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback) {
+void API::getModerators(const std::function<void(bool)>& callback) {
+    getModerators(callback, downloadListener);
+}
+
+void API::getSentLevels(const SentLevelFilters& filters, const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     std::ostringstream url;
     url << SERVER_URL << "/mod/sent?sort=" << filters.sort
         << "&page=" << filters.page;
@@ -238,7 +242,11 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
 
             std::vector<int> levelIDs;
             levelIDs.reserve(levels.size());
-            std::ranges::transform(levels, std::back_inserter(levelIDs), [](const SentLevel& level) {return level.id;});
+            std::transform(
+                levels.begin(), levels.end(),
+                std::back_inserter(levelIDs),
+                [](const SentLevel& level) { return level.id; }
+            );
 
             const auto remaining = global->allCached(levelIDs);
             if (remaining.empty()) {
@@ -262,12 +270,12 @@ void API::getSentLevels(const SentLevelFilters& filters, const std::function<voi
             });
 
             glm->m_levelManagerDelegate = delegate;
-            glm->getOnlineLevels(GJSearchObject::create(SearchType::Type26, fmt::format("{}", fmt::join(remaining, ","))));
+            glm->getOnlineLevels(GJSearchObject::create(SearchType::Type26, fmt::format("{}", fmt::join(remaining.begin(), remaining.end(), ","))));
         }
-    });
+    }, listener);
 }
 
-void API::clearLevelSends(const int levelID, const std::function<void(bool)>& callback) {
+void API::clearLevelSends(int levelID, const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     matjson::Value body;
 
     body["levelID"] = levelID;
@@ -284,10 +292,10 @@ void API::clearLevelSends(const int levelID, const std::function<void(bool)>& ca
             showFailurePopup(fmt::format("Failed to clear level sends: {}", data["error"].asString().unwrapOrDefault()));
             callback(false);
         } else callback(true);
-    });
+    }, listener);
 }
 
-void API::rateLevel(const int levelID, const int stars, const int feature, const std::function<void(bool)>& callback) {
+void API::rateLevel(int levelID, int stars, int feature, const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     matjson::Value body;
 
     body["levelID"] = levelID;
@@ -309,10 +317,10 @@ void API::rateLevel(const int levelID, const int stars, const int feature, const
             Global::get()->setLevelRating(levelID, std::make_pair(stars, feature));
             callback(true);
         }
-    });
+    }, listener);
 }
 
-void API::derateLevel(const int levelID, const std::function<void(bool)>& callback) {
+void API::derateLevel(int levelID, const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     matjson::Value body;
 
     body["levelID"] = levelID;
@@ -332,12 +340,12 @@ void API::derateLevel(const int levelID, const std::function<void(bool)>& callba
             Global::get()->setLevelRating(levelID, std::nullopt);
             callback(true);
         }
-    });
+    }, listener);
 }
 
-void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function<void(bool)>& callback) {
+void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     std::ostringstream url;
-    url << SERVER_URL << "/rated?levelIDs=" << fmt::format("{}", fmt::join(levelIDs, ","));
+    url << SERVER_URL << "/rated?levelIDs=" << fmt::format("{}", fmt::join(levelIDs.begin(), levelIDs.end(), ","));
 
     if (!isLoading) {
         loadLayer = LoadLayer::createHidden();
@@ -366,10 +374,10 @@ void API::checkRatedLevels(const std::vector<int>& levelIDs, const std::function
 
             callback(true);
         }
-    });
+    }, listener);
 }
 
-void API::getLatestRates(const std::function<void(bool)>& callback) {
+void API::getLatestRates(const std::function<void(bool)>& callback, EventListener<web::WebTask>& listener) {
     if (!isLoading) {
         loadLayer = LoadLayer::create();
         loadLayer->show();
@@ -388,5 +396,5 @@ void API::getLatestRates(const std::function<void(bool)>& callback) {
 
             callback(true);
         }
-    });
+    }, listener);
 }

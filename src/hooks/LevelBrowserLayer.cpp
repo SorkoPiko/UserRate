@@ -17,6 +17,7 @@ constexpr bool isValidLevelType(GJLevelType level) {
 class $modify(RateLevelBrowserLayer, LevelBrowserLayer) {
     struct Fields {
         bool block = false;
+        EventListener<web::WebTask> listener;
     };
     void setupLevelBrowser(CCArray* levels) {
         LevelBrowserLayer::setupLevelBrowser(levels);
@@ -39,23 +40,23 @@ class $modify(RateLevelBrowserLayer, LevelBrowserLayer) {
         API::checkRatedLevels(levelIds, [this](const bool success) {
             if (success) modifyDifficultySprites();
             else m_fields->block = false;
-        });
+        }, m_fields->listener);
     }
 
-    void keyDown(const enumKeyCodes p0) override {
-        if (m_fields->block) return;
-        LevelBrowserLayer::keyDown(p0);
-    }
-
-    void onBack(CCObject* sender) override {
-        if (m_fields->block) return;
-        LevelBrowserLayer::onBack(sender);
-    }
-
-    void keyBackClicked() override {
-        if (m_fields->block) return;
-        LevelBrowserLayer::keyBackClicked();
-    }
+    // void keyDown(const enumKeyCodes p0) override {
+    //     if (m_fields->block) return;
+    //     LevelBrowserLayer::keyDown(p0);
+    // }
+    //
+    // void onBack(CCObject* sender) override {
+    //     if (m_fields->block) return;
+    //     LevelBrowserLayer::onBack(sender);
+    // }
+    //
+    // void keyBackClicked() override {
+    //     if (m_fields->block) return;
+    //     LevelBrowserLayer::keyBackClicked();
+    // }
 
     void modifyDifficultySprites() {
         const auto global = Global::get();

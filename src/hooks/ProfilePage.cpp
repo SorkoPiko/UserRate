@@ -8,6 +8,7 @@ using namespace geode::prelude;
 class $modify(RateProfilePage, ProfilePage) {
     struct Fields {
         CCMenuItemSpriteExtra* reassignButton = nullptr;
+        EventListener<web::WebTask> listener;
     };
 
     void onClose(CCObject* sender) {
@@ -74,7 +75,7 @@ class $modify(RateProfilePage, ProfilePage) {
 
                             if (m_fields->reassignButton) m_fields->reassignButton->removeFromParentAndCleanup(true);
                         }
-                    });
+                    }, m_fields->listener);
                 }
             }
         );

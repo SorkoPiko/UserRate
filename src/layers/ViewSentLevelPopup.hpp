@@ -51,6 +51,7 @@ class ViewSentLevelPopup final : public Popup<const SentLevel&, AdminPage*>{
     CCLabelBMFont* featureLabel = nullptr;
     CCMenuItemSpriteExtra* playButton = nullptr;
     CCMenuItemSpriteExtra* clearButton = nullptr;
+    EventListener<web::WebTask> listener;
 
     bool setup(const SentLevel& level, AdminPage* adminPage) override;
     void onClose(CCObject* sender) override;

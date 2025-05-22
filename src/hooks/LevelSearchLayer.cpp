@@ -6,6 +6,10 @@
 using namespace geode::prelude;
 
 class $modify(RateLevelSearchLayer, LevelSearchLayer) {
+    struct Fields {
+        EventListener<web::WebTask> listener;
+    };
+
     bool init(const int searchType) {
         if (!LevelSearchLayer::init(searchType)) return false;
 
@@ -37,11 +41,11 @@ class $modify(RateLevelSearchLayer, LevelSearchLayer) {
         API::getLatestRates([](const bool success) {
             if (success) {
                 const auto scene = CCScene::create();
-                const auto browseLayer = LevelBrowserLayer::create(GJSearchObject::create(SearchType::Type19, fmt::format("{}", fmt::join(Global::get()->getLatestRates(), ","))));
+                const auto rates = Global::get()->getLatestRates();
+                const auto browseLayer = LevelBrowserLayer::create(GJSearchObject::create(SearchType::Type19, fmt::format("{}", fmt::join(rates.begin(), rates.end(), ","))));
                 scene->addChild(browseLayer);
                 CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, scene));
-            };
-
-        });
+            }
+        }, m_fields->listener);
     }
 };

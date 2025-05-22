@@ -6,6 +6,10 @@
 using namespace geode::prelude;
 
 class $modify(RateRateStarsLayer, RateStarsLayer) {
+    struct Fields {
+        EventListener<web::WebTask> listener;
+    };
+
     bool init(const int p0, const bool p1, const bool p2) {
         if (!RateStarsLayer::init(p0, p1, p2)) return false;
 
@@ -27,7 +31,7 @@ class $modify(RateRateStarsLayer, RateStarsLayer) {
 
                 RateStarsLayer::onClose(nullptr);
             }
-        });
+        }, m_fields->listener);
     }
 
     void onClose(CCObject* sender) {

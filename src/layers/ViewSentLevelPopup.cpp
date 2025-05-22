@@ -178,7 +178,7 @@ void ViewSentLevelPopup::onClear(CCObject*) {
                     adminPage->loadLevelPage();
                     onClose(nullptr);
                 }
-            });
+            }, listener);
         }
     )->m_button1->updateBGImage("GJ_button_06.png");
 

@@ -7,7 +7,7 @@ using namespace geode::prelude;
 
 class $modify(RateCCHttpClient, CCHttpClient) {
     static void onModify(auto& self) {
-        if (!self.setHookPriorityPre("CCHttpClient::send", Priority::Early)) log::warn("Failed to set hook priority.");
+        if (!self.setHookPriorityPre("CCHttpClient::send", Priority::VeryEarly)) log::warn("Failed to set hook priority.");
     }
 
     void send(CCHttpRequest* request) {

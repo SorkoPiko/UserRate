@@ -9,6 +9,7 @@ using namespace geode::prelude;
 class $modify(RateLevelInfoLayer, LevelInfoLayer) {
     struct Fields {
         CCMenuItemSpriteExtra* rateButton = nullptr;
+        EventListener<web::WebTask> listener;
     };
 
     bool init(GJGameLevel* level, const bool challenge) {
@@ -17,7 +18,7 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
         if (const auto global = Global::get(); !global->levelRatingExists(m_level->m_levelID.value())) {
             API::checkRatedLevels({m_level->m_levelID.value()}, [this](const bool success) {
                 if (success) addCustom();
-            });
+            }, m_fields->listener);
         }
         else addCustom();
 
@@ -171,7 +172,7 @@ class $modify(RateLevelInfoLayer, LevelInfoLayer) {
 
                             if (m_fields->rateButton) m_fields->rateButton->removeFromParentAndCleanup(true);
                         }
-                    });
+                    }, m_fields->listener);
                 }
             }
         )->m_button1->updateBGImage("GJ_button_06.png");

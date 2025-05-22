@@ -203,7 +203,7 @@ void AdminPage::loadLevelPage() {
 
             if (success) loadLevelPage();
             finishLoadUI();
-        });
+        }, listener);
     }
 }
 
